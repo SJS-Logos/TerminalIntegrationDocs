@@ -8,7 +8,7 @@ Technical specifications for integration between an embedded teminal and backend
 
 | Title | Version | Status |
 |-------|---------|--------|
-| [Http Request Execution](Concepts/HttpRequestExecution/RFC.md) | 1.0 | Draft |
+| [Http Request Execution](concepts/HttpRequestExecution/RFC.md) | 1.0 | Draft |
 
 ---
 
