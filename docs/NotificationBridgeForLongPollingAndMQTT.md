@@ -366,6 +366,6 @@ Because:
 [fowler-event-notification]: https://martinfowler.com/articles/201701-event-driven.html
 [mqtt-v5]: https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
 [rfc6202]: https://www.rfc-editor.org/rfc/rfc6202
-[amqp-v1]: https://docs.oasis-open.org/amqp/core/v1.0/amqp-core-complete-v1.0.html
+[amqp-v1]: https://docs.oasis-open.org/amqp/core/v1.0/amqp-core-messaging-v1.0.html
 [eip-pubsub]: https://www.enterpriseintegrationpatterns.com/patterns/messaging/PublishSubscribeChannel.html
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
