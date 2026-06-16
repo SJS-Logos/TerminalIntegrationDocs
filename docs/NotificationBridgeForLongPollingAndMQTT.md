@@ -1,7 +1,7 @@
 # RFC: Minimal Notification Bridge for LongPolling and MQTT
 
-**Version:** 1.0
-**Status:** Draft
+**Version:** 1.0  
+**Status:** Draft  
 
 ---
 
@@ -23,19 +23,19 @@ The key words **MUST**, **MUST NOT**, **SHALL**, **SHOULD**, and **MAY** are to 
 
 ## 3.1 In Scope
 
-* Minimal AMQP message format for notifications
-* Subscription model for LongPolling and MQTT controllers
-* Translation of AMQP messages into transport-specific messages
-* Terminal notification delivery semantics
-* REST API-based state retrieval pattern
+- Minimal AMQP message format for notifications  
+- Subscription model for LongPolling and MQTT controllers  
+- Translation of AMQP messages into transport-specific messages  
+- Terminal notification delivery semantics  
+- REST API-based state retrieval pattern  
 
 ## 3.2 Out of Scope
 
-* Domain event schemas
-* Business payload content
-* Message routing logic beyond keyword matching
-* LongPolling persistence internals
-* MQTT broker configuration
+- Domain event schemas  
+- Business payload content  
+- Message routing logic beyond keyword matching  
+- LongPolling persistence internals  
+- MQTT broker configuration  
 
 ---
 
@@ -57,15 +57,17 @@ The terminal MUST use REST APIs to retrieve the actual state associated with a n
 
 Notifications are NOT authoritative data carriers.
 
+> **Reference:** Using REST as the authoritative, queryable source of truth follows the REST architectural style ([Fielding][fielding-rest]) and the Event Notification pattern ([Fowler][fowler-event-notification]), in which an event signals only that state changed while the consumer retrieves current state via a subsequent request (e.g. HTTP GET, [RFC 9110 §9.3.1][rfc9110-get]).
+
 ---
 
 ## 4.3 Transport Independence
 
 The AMQP message format is independent of:
 
-* LongPolling implementation
-* MQTT implementation
-* downstream delivery mechanism
+- LongPolling implementation  
+- MQTT implementation  
+- downstream delivery mechanism  
 
 ---
 
@@ -93,9 +95,9 @@ Represents the type of state change.
 
 Examples:
 
-* `"FinancialLogCreated"`
-* `"ReservationUpdated"`
-* `"DeviceStatusChanged"`
+- `"FinancialLogCreated"`  
+- `"ReservationUpdated"`  
+- `"DeviceStatusChanged"`  
 
 The keyword MUST be treated as a routing hint only.
 
@@ -119,10 +121,10 @@ This is a stable identifier used for REST API retrieval.
 
 ## 5.3 Constraints
 
-* Messages MUST NOT contain state payloads
-* Messages MUST NOT contain computed results
-* Messages MUST NOT embed REST responses
-* Messages MUST remain minimal and opaque to transport layer
+- Messages MUST NOT contain state payloads  
+- Messages MUST NOT contain computed results  
+- Messages MUST NOT embed REST responses  
+- Messages MUST remain minimal and opaque to transport layer  
 
 ---
 
@@ -132,9 +134,9 @@ This is a stable identifier used for REST API retrieval.
 
 A Notification Controller (LongPolling or MQTT bridge) MUST:
 
-* subscribe to AMQP messages matching allowed keywords
-* filter messages by `applicationId`
-* forward matching messages to the appropriate transport adapter
+- subscribe to AMQP messages matching allowed keywords  
+- filter messages by `applicationId`  
+- forward matching messages to the appropriate transport adapter  
 
 ---
 
@@ -142,8 +144,8 @@ A Notification Controller (LongPolling or MQTT bridge) MUST:
 
 A message MUST be forwarded if:
 
-* `applicationId` matches an active subscriber session
-* keyword is registered for that controller
+- `applicationId` matches an active subscriber session  
+- keyword is registered for that controller  
 
 ---
 
@@ -153,9 +155,9 @@ A message MUST be forwarded if:
 
 When a matching AMQP message is received, the LongPolling Controller MUST:
 
-1. Convert AMQP message into a LongPolling notification envelope
-2. Store or buffer the notification for the associated terminal session
-3. Trigger wake-up delivery via LongPolling API
+1. Convert AMQP message into a LongPolling notification envelope  
+2. Store or buffer the notification for the associated terminal session  
+3. Trigger wake-up delivery via LongPolling API  
 
 ---
 
@@ -163,9 +165,9 @@ When a matching AMQP message is received, the LongPolling Controller MUST:
 
 The LongPolling message MUST include:
 
-* keyword
-* objectId
-* applicationId
+- keyword  
+- objectId  
+- applicationId  
 
 No additional state is allowed.
 
@@ -175,12 +177,14 @@ No additional state is allowed.
 
 The controller MUST NOT assume:
 
-* terminal is actively polling
-* message is immediately consumed
+- terminal is actively polling  
+- message is immediately consumed  
 
 If no active poll exists:
 
 > the message MAY be buffered until next poll cycle
+
+> **Reference:** The LongPolling delivery model used here as a change indicator follows the long-polling best practices described in [RFC 6202][rfc6202].
 
 ---
 
@@ -190,9 +194,11 @@ If no active poll exists:
 
 The MQTT Controller MUST:
 
-* subscribe to the same AMQP message stream
-* transform messages into MQTT publish events
-* publish to topic derived from `applicationId`
+- subscribe to the same AMQP message stream  
+- transform messages into MQTT publish events  
+- publish to topic derived from `applicationId`  
+
+> **Reference:** The MQTT delivery model used here as a change indicator follows the publish/subscribe semantics of [MQTT Version 5.0][mqtt-v5], an instance of the Publish-Subscribe Channel pattern ([Enterprise Integration Patterns][eip-pubsub]).
 
 ---
 
@@ -200,7 +206,7 @@ The MQTT Controller MUST:
 
 MQTT topics SHOULD follow:
 
-```
+```text
 /notification/{applicationId}
 ```
 
@@ -226,7 +232,7 @@ MQTT payload MUST be identical to AMQP message structure:
 
 The terminal MUST treat all notifications as:
 
-> “State change indicator — retrieve updated state via REST API”
+> "State change indicator — retrieve updated state via REST API"
 
 ---
 
@@ -234,10 +240,10 @@ The terminal MUST treat all notifications as:
 
 Upon receiving a notification:
 
-1. Parse `keyword`
-2. Identify affected resource via `objectId`
-3. Call corresponding REST endpoint
-4. Discard notification after processing
+1. Parse `keyword`  
+2. Identify affected resource via `objectId`  
+3. Call corresponding REST endpoint  
+4. Discard notification after processing  
 
 ---
 
@@ -245,9 +251,9 @@ Upon receiving a notification:
 
 The terminal MUST assume:
 
-* notifications MAY be duplicated
-* notifications MAY arrive out of order
-* notifications MAY be replayed
+- notifications MAY be duplicated  
+- notifications MAY arrive out of order  
+- notifications MAY be replayed  
 
 Therefore:
 
@@ -261,8 +267,8 @@ Therefore:
 
 If AMQP message is not delivered:
 
-* no system state is corrupted
-* terminal will eventually reconcile via REST polling or next notification
+- no system state is corrupted  
+- terminal will eventually reconcile via REST polling or next notification  
 
 ---
 
@@ -278,9 +284,9 @@ Terminal MUST ensure idempotent handling via REST retrieval.
 
 If LongPolling or MQTT controller fails:
 
-* AMQP messages remain in broker
-* messages MAY be retried or reprocessed
-* no message carries critical state
+- AMQP messages remain in broker  
+- messages MAY be retried or reprocessed  
+- no message carries critical state  
 
 ---
 
@@ -290,9 +296,9 @@ If LongPolling or MQTT controller fails:
 
 To ensure:
 
-* transport independence
-* low coupling to domain evolution
-* predictable routing behavior
+- transport independence  
+- low coupling to domain evolution  
+- predictable routing behavior  
 
 ---
 
@@ -300,9 +306,9 @@ To ensure:
 
 Because payload inclusion would:
 
-* duplicate REST responsibilities
-* create inconsistent state views
-* couple transport to domain schema evolution
+- duplicate REST responsibilities  
+- create inconsistent state views  
+- couple transport to domain schema evolution  
 
 ---
 
@@ -320,9 +326,9 @@ AMQP only signals that a change occurred.
 
 Because:
 
-* it avoids schema-aware brokers
-* keeps controllers stateless
-* enables simple filtering logic
+- it avoids schema-aware brokers  
+- keeps controllers stateless  
+- enables simple filtering logic  
 
 ---
 
@@ -341,3 +347,25 @@ Because:
 # 13. Final Principle
 
 > Notifications are not data. Notifications are invalidation signals.
+
+---
+
+# 14. References
+
+- [Roy T. Fielding — Architectural Styles and the Design of Network-based Software Architectures (REST), Ch. 5][fielding-rest]  
+- [RFC 9110 — HTTP Semantics, §9.3.1 GET][rfc9110-get]  
+- [Martin Fowler — What do you mean by Event-Driven? (Event Notification)][fowler-event-notification]  
+- [OASIS — MQTT Version 5.0][mqtt-v5]  
+- [RFC 6202 — Best Practices for Long Polling and Streaming in Bidirectional HTTP][rfc6202]  
+- [OASIS — AMQP Version 1.0][amqp-v1]  
+- [Enterprise Integration Patterns — Publish-Subscribe Channel][eip-pubsub]  
+- [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels][rfc2119]  
+
+[fielding-rest]: https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm
+[rfc9110-get]: https://www.rfc-editor.org/rfc/rfc9110#section-9.3.1
+[fowler-event-notification]: https://martinfowler.com/articles/201701-event-driven.html
+[mqtt-v5]: https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
+[rfc6202]: https://www.rfc-editor.org/rfc/rfc6202
+[amqp-v1]: https://docs.oasis-open.org/amqp/core/v1.0/amqp-core-complete-v1.0.html
+[eip-pubsub]: https://www.enterpriseintegrationpatterns.com/patterns/messaging/PublishSubscribeChannel.html
+[rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
