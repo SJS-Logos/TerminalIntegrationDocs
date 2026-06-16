@@ -1,40 +1,72 @@
-# RFC: HTTP Request Execution, Idempotency, and Operation Lifecycle Protocol
+# RFC: HTTP Execution Metadata and Asynchronous Operation Protocol
 
-## 1. Abstract
+## 1. Scope 
 
-This specification defines a transport-layer protocol for reliable execution of client-initiated operations over HTTP in environments with unreliable connectivity (e.g., embedded terminals).
+This specification defines a transport-level protocol for reliable execution of HTTP requests in distributed systems with unreliable clients.
 
-It introduces three identifiers:
+It defines:
 
-* Idempotency Key (request deduplication)
-* Operation ID (server-side execution tracking)
-* Correlation ID (distributed tracing)
+* request deduplication semantics
+* asynchronous execution model
+* operation tracking
+* trace propagation
 
-It also defines an Operation resource model and strict rules for 202 Accepted semantics to ensure crash safety and recoverability.
+It does NOT define:
+
+* business domains
+* data models
+* resource semantics beyond operations
+* storage implementations
 
 ---
 
-## 2. Terminology
+## 2. Identifier Model
 
-### 2.1 Operation
+All request metadata is classified into four categories.
 
-A server-side execution instance representing a single logical unit of work initiated by a client request.
+### 2.1 Idempotency Key
 
-### 2.2 Terminal State
+> A client-generated token identifying a logical request execution.
 
-A state in which an Operation is no longer progressing:
+* Scope: single logical command execution
+* Purpose: duplicate suppression
+* Must NOT represent business identity
+* Must NOT be reused across distinct operations
 
-* Completed
-* Failed
-* Cancelled
+---
 
-### 2.3 Durable Store
+### 2.2 Operation Identifier
 
-A persistent, crash-resilient storage system (e.g., database or event log).
+> A server-generated identifier representing an asynchronous execution instance.
 
-### 2.4 Ephemeral Store
+* Scope: one server-side execution unit
+* Purpose: execution tracking and polling
+* Must survive failures and restarts
+* Must NOT be used as business identifier
 
-A non-durable cache (e.g., Redis), which may lose data at any time.
+---
+
+### 2.3 Correlation Identifier
+
+> A trace identifier propagated across all services involved in processing a request.
+
+* Scope: end-to-end request flow
+* Purpose: observability and diagnostics
+* Must NOT affect execution semantics
+
+---
+
+### 2.4 Request Execution Record (conceptual)
+
+> A durable server-side record linking request metadata to execution state.
+
+Contains:
+
+* Idempotency Key
+* Operation ID (if async)
+* Request hash
+* Execution state
+* Response metadata
 
 ---
 
@@ -42,258 +74,170 @@ A non-durable cache (e.g., Redis), which may lose data at any time.
 
 ### 3.1 Idempotency-Key
 
-**Header:** `Idempotency-Key`
+Client-provided.
 
-* Supplied by: Client
-* Scope: Single logical request execution
-* Lifetime: Until Operation reaches terminal state or key expires per retention policy
+Used for detecting duplicate logical requests.
 
-#### Semantics
+Requests with identical Idempotency-Key:
 
-The Idempotency-Key uniquely identifies a logical command invocation.
-
-Requests with the same Idempotency-Key MUST NOT result in multiple executions.
+* MUST NOT be executed more than once
+* MUST return identical operation outcome
 
 ---
 
 ### 3.2 Correlation-Id
 
-**Header:** `Correlation-Id`
+Client- or gateway-provided.
 
-* Supplied by: Client or Gateway
-* Scope: End-to-end request tracing
-* Lifetime: Single request flow across services
+Must be propagated unchanged across all services.
 
-#### Semantics
-
-Correlation-Id is used exclusively for observability and MUST NOT influence execution semantics.
+Must not influence request execution or response generation.
 
 ---
 
-## 4. Operation Resource Model
+## 4. Execution Model
 
-### 4.1 Operation Identifier
+## 4.1 Synchronous Execution
 
-The server SHALL generate an OperationId for each accepted asynchronous operation.
+If execution completes within service constraints:
 
-* Globally unique within system scope
-* Immutable
-* Not meaningful to business domain
-
----
-
-### 4.2 Operation State Machine
-
-An Operation SHALL transition through the following states:
-
-```text
-Pending → Running → Completed
-                    ↘ Failed
-                    ↘ Cancelled
-```
-
-State transitions MUST be monotonic and persisted.
-
----
-
-### 4.3 Operation Persistence Requirement
-
-All Operations MUST be written to Durable Store BEFORE any HTTP response is returned.
-
-Failure to persist MUST result in request failure (no 2xx response).
-
----
-
-## 5. HTTP Semantics
-
-### 5.1 Synchronous Execution
-
-If execution completes within service time budget:
-
-```http
+```http id="k9q1lm"
 200 OK
 or
 201 Created
 ```
 
-No Operation resource is required.
+No Operation ID is required.
 
 ---
 
-### 5.2 Asynchronous Execution
+## 4.2 Asynchronous Execution
 
-If execution cannot complete synchronously:
+If execution cannot complete within response budget:
 
-```http
+```http id="q8x7za"
 202 Accepted
 Location: /operations/{operationId}
 ```
 
-Response MUST be returned only after:
+The server MUST:
 
-* Operation is durably persisted
-* Initial state is recorded (at minimum: Pending or Running)
-
----
-
-### 5.3 202 Accepted Semantics
-
-A 202 response constitutes:
-
-> A durable transfer of execution responsibility from client to server.
-
-After 202 is returned:
-
-* The server MUST ensure eventual completion or failure is observable via Operation resource
-* The Operation MUST survive server restart, process failure, and cache loss
+* persist execution state BEFORE returning response
+* associate Idempotency-Key with Operation ID
 
 ---
 
-## 6. Operation Endpoint
+## 5. Operation Resource
 
-### 6.1 Retrieve Operation
+## 5.1 Operation State Machine
 
-```http
+```text id="m2q7tv"
+Pending → Running → Completed
+                    ↘ Failed
+```
+
+State transitions MUST be monotonic.
+
+---
+
+## 5.2 Operation Retrieval
+
+```http id="x1v9nd"
 GET /operations/{operationId}
 ```
 
-Response:
-
-```json
-{
-  "operationId": "12345",
-  "state": "Running"
-}
-```
-
-or terminal state:
-
-```json
-{
-  "operationId": "12345",
-  "state": "Completed"
-}
-```
+Returns current execution state.
 
 ---
 
-### 6.2 Idempotent Retry Behavior
+## 6. Idempotency Semantics
 
-If a client repeats the original request with the same Idempotency-Key:
+## 6.1 Duplicate Request Handling
 
-* The server MUST return the same OperationId
-* The server MUST return the same 202 response metadata
-* The operation MUST NOT be executed again
+If a request is received with an existing Idempotency-Key:
 
----
-
-## 7. Storage Architecture Requirements
-
-### 7.1 Durable Store (Mandatory)
-
-Must store:
-
-* OperationId
-* IdempotencyKey
-* RequestHash
-* State
-* Timestamps
-
-Must survive:
-
-* power failure
-* process crash
-* node restart
+* Server MUST return the original Operation ID (if async)
+* Server MUST NOT re-execute the operation
+* Server MUST ensure response consistency
 
 ---
 
-### 7.2 Ephemeral Store (Optional)
+## 6.2 Request Mismatch Handling
 
-May store:
+If same Idempotency-Key is used with different request payload:
 
-* Idempotency-Key → OperationId mapping
-* Cached Operation state
-* Fast lookup indexes
-
-Must NOT be the source of truth.
+* Server MUST reject request
+* Server MUST NOT execute operation
 
 ---
 
-## 8. Failure Modes and Recovery
+## 7. Failure Model Requirements
 
-### 8.1 Response Loss After 202
+## 7.1 Crash Safety Requirement
 
-If HTTP response is lost after server-side persistence:
+A system implementing this RFC MUST ensure:
 
-* Client retries request with same Idempotency-Key
-* Server returns existing OperationId
-* Client resumes polling Operation resource
+> Any request acknowledged with 202 MUST remain observable via Operation ID after full system restart.
 
-No duplicate execution occurs.
+This implies:
 
----
-
-### 8.2 Server Crash After 202
-
-If server crashes after returning 202:
-
-* Operation MUST be recoverable from Durable Store
-* Operation state MUST be queryable via Operation endpoint
+* Operation state MUST be durably persisted
+* Idempotency mapping MUST be durable or reconstructible
 
 ---
 
-### 8.3 Cache Loss (e.g., Redis flush)
+## 7.2 Cache Constraint
 
-Cache loss MUST NOT affect:
+Ephemeral stores (e.g., Redis):
 
-* idempotency correctness
-* operation existence
-* operation state
+* MAY be used for acceleration
+* MUST NOT be the source of truth for:
 
-Cache is strictly a performance optimization.
+  * operation existence
+  * idempotency correctness
+  * execution state
 
 ---
 
-## 9. Client Responsibilities (Embedded Terminals)
+## 8. Terminal / Client Responsibilities (generic, no domain)
 
 Clients MUST:
 
-1. Persist Idempotency-Key for each logical command
-2. Persist OperationId after receiving 202
-3. Poll Operation endpoint until terminal state is reached
-4. Retry original request using same Idempotency-Key if response is lost or ambiguous
-5. Treat 202 as acceptance of responsibility transfer
+* persist Idempotency-Key for each logical request
+* persist Operation ID after receiving 202
+* retry requests using the same Idempotency-Key after failure
+* poll Operation endpoint until terminal state
 
 Clients MUST NOT:
 
-* assume completion from 202
-* generate multiple Idempotency-Keys for the same logical action
-* discard OperationId before terminal state
+* infer completion from 202
+* generate multiple Idempotency-Keys for the same logical operation
+* discard Operation ID before completion
 
 ---
 
-## 10. Design Principle
+## 9. Key Design Principle
 
-> Idempotency ensures single execution.
-> Operation ensures observability of execution.
-> Correlation ensures traceability of execution.
+> HTTP request execution is split into three independent concerns:
 
-These concerns are intentionally orthogonal and MUST NOT be merged.
+| Concern               | Mechanism       |
+| --------------------- | --------------- |
+| Duplicate suppression | Idempotency-Key |
+| Execution tracking    | Operation ID    |
+| Observability         | Correlation ID  |
 
----
-
-## 11. Security and Integrity Considerations
-
-* RequestHash SHOULD be stored alongside Idempotency-Key to detect semantic changes
-* Mismatched requests with same Idempotency-Key MUST be rejected
-* Replay attacks MUST be mitigated via Idempotency-Key uniqueness enforcement within retention window
+These MUST remain independent and MUST NOT be conflated.
 
 ---
 
-## 12. Non-Goals
+## 10. Non-Goals
 
-This specification does not define:
+This specification explicitly does NOT define:
 
-* business transaction semantics (e.g., payments, parking rules)
-* domain identifiers (e.g., SessionId)
-* settlement or reconciliation logic
+* domain identifiers
+* business transaction models
+* financial or industrial semantics
+* session or aggregate concepts
+
+---
+
