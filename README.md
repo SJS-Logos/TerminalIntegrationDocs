@@ -9,7 +9,7 @@ Technical specifications for integration between an embedded teminal and backend
 | Title | Version | Status |
 |-------|---------|--------|
 | [Http Request Execution](docs/HttpRequestExecution.md) | 1.0 | Draft |
-| [Notification Bridge For LongPolling And MQTT] (docs/NotificationBridgeForLongPollingAndMQTT.md) | 1.0 | Draft |
+| [Notification Bridge For LongPolling And MQTT](docs/NotificationBridgeForLongPollingAndMQTT.md) | 1.0 | Draft |
 
 ---
 
