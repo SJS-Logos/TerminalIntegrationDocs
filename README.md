@@ -26,5 +26,5 @@ It introduces three identifiers:
 
 It also defines an Operation resource model and strict rules for 202 Accepted semantics to ensure crash safety and recoverability.
 
-→ [Read full RFC](Concepts/HttpRequestExecution/RFC.md)
+→ [Read full RFC](concepts/HttpRequestExecution/RFC.md)
 
