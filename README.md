@@ -8,7 +8,7 @@ Technical specifications for integration between an embedded teminal and backend
 
 | Title | Version | Status |
 |-------|---------|--------|
-| [Http Request Execution](Concepts/HttpRequestExecution/readme.md) | 1.0 | Draft |
+| [Http Request Execution](Concepts/HttpRequestExecution/RFC.md) | 1.0 | Draft |
 
 ---
 
@@ -26,5 +26,5 @@ It introduces three identifiers:
 
 It also defines an Operation resource model and strict rules for 202 Accepted semantics to ensure crash safety and recoverability.
 
-→ [Read full RFC](Concepts/HttpRequestExecution/readme.md)
+→ [Read full RFC](Concepts/HttpRequestExecution/RFC.md)
 
