@@ -8,7 +8,8 @@ Technical specifications for integration between an embedded teminal and backend
 
 | Title | Version | Status |
 |-------|---------|--------|
-| [Http Request Execution](concepts/HttpRequestExecution/RFC.md) | 1.0 | Draft |
+| [Http Request Execution](docs/HttpRequestExecution.md) | 1.0 | Draft |
+| [Notification Bridge For LongPolling And MQTT] (docs/NotificationBridgeForLongPollingAndMQTT.md) | 1.0 | Draft |
 
 ---
 
@@ -26,5 +27,12 @@ It introduces three identifiers:
 
 It also defines an Operation resource model and strict rules for 202 Accepted semantics to ensure crash safety and recoverability.
 
-→ [Read full RFC](concepts/HttpRequestExecution/RFC.md)
+→ [Read full RFC](docs/HttpRequestExecution.md)
 
+### Minimal Notification Bridge for LongPolling and MQTT
+
+This specification defines a minimal message format and transport bridge for delivering notifications to terminals via LongPolling and MQTT.
+
+The system is intentionally designed as a **signal-only mechanism**, where notifications do not carry domain state, but instead act as triggers for state retrieval via REST APIs.
+
+→ [Read full RFC](docs/NotificationBridgeForLongPollingAndMQTT.md)
