@@ -14,7 +14,7 @@ Technical specifications for integration between an embedded teminal and backend
 
 ## Abstracts
 
-### Deterministic Identifier Generation for DeviceId and ApplicationId
+### HTTP Request Execution, Idempotency, and Operation Lifecycle Protocol
 
 This specification defines a transport-layer protocol for reliable execution of client-initiated operations over HTTP in environments with unreliable connectivity (e.g., embedded terminals).
 
