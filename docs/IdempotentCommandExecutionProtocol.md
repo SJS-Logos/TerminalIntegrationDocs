@@ -1,4 +1,4 @@
-# RFC: Idempotent Command Execution Protocol (No Operation Resource Model)
+# RFC: Idempotent Command Execution Protocol
 
 **Version:** 1.0  
 **Status:** Draft  

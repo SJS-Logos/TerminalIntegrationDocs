@@ -8,26 +8,27 @@ Technical specifications for integration between an embedded teminal and backend
 
 | Title | Version | Status |
 |-------|---------|--------|
-| [Http Request Execution](docs/HttpRequestExecution.md) | 1.0 | Draft |
+| [Idempotent Command Execution Protocol](docs/IdempotentCommandExecutionProtocol.md) | 1.0 | Draft |
 | [Notification Bridge For LongPolling And MQTT](docs/NotificationBridgeForLongPollingAndMQTT.md) | 1.0 | Draft |
 
 ---
 
 ## Abstracts
 
-### HTTP Request Execution, Idempotency, and Operation Lifecycle Protocol
+### Idempotent Command Execution Protocol
 
-This specification defines a transport-layer protocol for reliable execution of client-initiated operations over HTTP in environments with unreliable connectivity (e.g., embedded terminals).
+This specification defines an HTTP-based execution protocol for reliable command processing in distributed systems with unreliable clients and intermittent connectivity.
 
-It introduces three identifiers:
+The protocol provides:
 
-* Idempotency Key (request deduplication)
-* Operation ID (server-side execution tracking)
-* Correlation ID (distributed tracing)
+- request deduplication  
+- durable server-side execution tracking  
+- asynchronous execution support  
+- recovery from client and server failures  
 
-It also defines an Operation resource model and strict rules for 202 Accepted semantics to ensure crash safety and recoverability.
+This specification explicitly defines a model that does not require a dedicated Operations endpoint.
 
-→ [Read full RFC](docs/HttpRequestExecution.md)
+→ [Read full RFC](docs/IdempotentCommandExecutionProtocol.md)
 
 ### Minimal Notification Bridge for LongPolling and MQTT
 
