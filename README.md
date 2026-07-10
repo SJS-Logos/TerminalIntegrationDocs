@@ -13,6 +13,21 @@ Technical specifications for integration between an embedded teminal and backend
 
 ---
 
+## Architecture Pattern (AP) Index
+
+| AP | Title | Category | Version | Status |
+|----|-------|----------|---------|--------|
+| [AP-001](docs/AP-001.md) | Architectural Principles | Foundational | 1.0 | Draft |
+| [AP-002](docs/AP-002.md) | Service Structure | Structural | 1.0 | Draft |
+| [AP-003](docs/AP-003.md) | Incoming Implementations | Structural | 0.1 | Draft |
+| [AP-004](docs/AP-004.md) | Domain | Structural | 0.1 | Draft |
+| [AP-005](docs/AP-005.md) | Domain Capabilities | Structural | 0.1 | Draft |
+| [AP-006](docs/AP-006.md) | Dependency Rules | Structural | 0.1 | Draft |
+| [AP-007](docs/AP-007.md) | Adapter Implementations | Structural | 0.1 | Draft |
+| [AP-008](docs/AP-008.md) | Testing Strategy | Structural | 0.1 | Draft |
+
+---
+
 ## Abstracts
 
 ### Idempotent Command Execution Protocol
