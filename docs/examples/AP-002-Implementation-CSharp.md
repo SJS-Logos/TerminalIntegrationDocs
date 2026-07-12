@@ -10,33 +10,50 @@
 
 This document demonstrates a concrete implementation of the service structure defined in AP-002 using C# and .NET.
 
-It shows how to structure a service using the Domain and Application units, how to define shared Value Objects (per AP-004 ง7), and how Domain Services perform business logic while state is managed externally.
+It shows how to structure a service using the Domain and Application units, how to define shared Value Objects (per AP-004 ยง7), and how Domain Services perform business logic while state is managed externally.
 
 This example uses a simplified payment authorization service to illustrate the concepts.
+
+> **๐“ฆ Compilable Example Available**  
+> A fully compilable version of this example is available at:  
+> [`examples/csharp/`](../../examples/csharp/)  
+>
+> You can build and run it with:
+> ```bash
+> cd examples/csharp
+> dotnet build
+> cd Logos.PaymentService.WebApi
+> dotnet run
+> ```
 
 **Key Architectural Decisions:**
 
 - **Stateless Domain Services**: Business logic operates on Value Objects without entity classes
 - **External State Management**: Identity and state persistence handled by the repository (database)
-- **Shared Value Objects**: Value Objects defined once in Domain, referenced by Application contracts (AP-004 ง7)
+- **Shared Value Objects**: Value Objects defined once in Domain, referenced by Application contracts (AP-004 ยง7)
 - **Synchronous Request-Response**: Thread starts with an event (request), executes business logic, persists state, and ends with a message (response). No async in domain/application layers; threads are short-lived.
 
 ---
 
 # 2. Project Structure
 
-A C# service following AP-002 consists of the following projects:
+The compilable example is organized into the following projects:
+
+**Location:** [`examples/csharp/`](../../examples/csharp/)
 
 ```
-Company.PaymentService/
-??? Company.PaymentService.Domain/
-?   ??? ValueObjects/          (Shared with contracts per AP-004 ง7)
-?   ??? Services/
-?   ??? Abstractions/          (Capabilities)
-??? Company.PaymentService.Application/
-    ??? UseCases/
-    ??? Contracts/             (References Domain ValueObjects)
+Logos.PaymentService/
+|-- Logos.PaymentService.Domain/
+|   |-- Entities/
+|   |-- ValueObjects/          (Shared with contracts per AP-004 ยง7)
+|   |-- Services/
+|   `-- Abstractions/          (Capabilities - AP-005)
+`-- Logos.PaymentService.Application/
+    |-- UseCases/
+    `-- Contracts/             (References Domain ValueObjects)
 ```
+
+See the [full README](../../examples/csharp/README.md) for the complete project structure including adapters and incoming implementations
 
 The Application project references the Domain project. The Domain project has no project references to other service projects.
 
@@ -46,92 +63,35 @@ The Application project references the Domain project. The Domain project has no
 
 ## 3.1 Value Objects
 
-Value Objects are immutable domain concepts shared between Domain and Application (AP-004 ง7).
+Value Objects are immutable domain concepts shared between Domain and Application (AP-004 ยง7).
 
-```csharp
-// Company.PaymentService.Domain/ValueObjects/Money.cs
-namespace Company.PaymentService.Domain.ValueObjects;
+**File:** [`examples/csharp/Logos.PaymentService.Domain/ValueObjects/Money.cs`](../../examples/csharp/Logos.PaymentService.Domain/ValueObjects/Money.cs)
 
-/// <summary>
-/// Shared Value Object representing monetary amounts.
-/// Used by both Domain logic and Application contracts (AP-004 ง7).
-/// </summary>
-public record Money(decimal Amount, string Currency)
-{
-    public static Money Zero(string currency) => new(0, currency);
+The `Money` value object:
+- Represents monetary amounts with currency
+- Immutable and validated at construction
+- Provides domain operations (validation, comparison)
+- Shared between Domain logic and Application contracts
 
-    public Money Add(Money other)
-    {
-        if (Currency != other.Currency)
-            throw new InvalidOperationException("Cannot add money with different currencies");
+**File:** [`examples/csharp/Logos.PaymentService.Domain/ValueObjects/PaymentStatus.cs`](../../examples/csharp/Logos.PaymentService.Domain/ValueObjects/PaymentStatus.cs)
 
-        return new Money(Amount + other.Amount, Currency);
-    }
+The `PaymentStatus` enum represents the authorization state.
 
-    public bool IsPositive() => Amount > 0;
+**File:** [`examples/csharp/Logos.PaymentService.Domain/Entities/Payment.cs`](../../examples/csharp/Logos.PaymentService.Domain/Entities/Payment.cs)
 
-    public bool IsGreaterThan(Money other)
-    {
-        if (Currency != other.Currency)
-            throw new InvalidOperationException("Cannot compare money with different currencies");
-
-        return Amount > other.Amount;
-    }
-}
-```
-
-```csharp
-// Company.PaymentService.Domain/ValueObjects/PaymentStatus.cs
-namespace Company.PaymentService.Domain.ValueObjects;
-
-/// <summary>
-/// Shared Value Object representing payment authorization status.
-/// </summary>
-public enum PaymentStatus
-{
-    Pending,
-    Authorized,
-    Declined
-}
-```
-
-```csharp
-// Company.PaymentService.Domain/ValueObjects/PaymentRecord.cs
-namespace Company.PaymentService.Domain.ValueObjects;
-
-/// <summary>
-/// Value Object representing a payment record.
-/// The identity (Id) is assigned by the repository/database.
-/// </summary>
-public record PaymentRecord(
-    Guid Id,
-    Money Amount,
-    string MerchantId,
-    PaymentStatus Status,
-    DateTime CreatedAt,
-    string? DeclineReason = null);
-```
+The `Payment` entity represents a payment with its state transitions.
 
 ## 3.2 Domain Services
 
-Domain services contain business logic and work with Value Objects. They are stateless.
+Domain services contain business logic and work with entities and value objects.
 
-```csharp
-// Company.PaymentService.Domain/Services/PaymentAuthorizationService.cs
-namespace Company.PaymentService.Domain.Services;
+**File:** [`examples/csharp/Logos.PaymentService.Domain/Services/PaymentAuthorizationService.cs`](../../examples/csharp/Logos.PaymentService.Domain/Services/PaymentAuthorizationService.cs)
 
-using Company.PaymentService.Domain.ValueObjects;
-using Company.PaymentService.Domain.Abstractions;
-
-/// <summary>
-/// Stateless service that performs payment authorization business logic.
-/// Works with Value Objects; state persistence is handled by repository.
-/// </summary>
-public class PaymentAuthorizationService(IFraudDetectionService fraudDetection, Money maximumAmount)
-{
-    public PaymentAuthorizationResult Authorize(
-        Money amount,
-        string merchantId)
+The `PaymentAuthorizationService`:
+- Stateless service with business logic
+- Validates payment amount against maximum
+- Checks for fraud via `IFraudDetectionService`
+- Modifies payment entity state (authorize or decline)
     {
         if (!amount.IsPositive())
         {
@@ -183,48 +143,15 @@ public record PaymentAuthorizationResult(
 
 ## 3.3 Capabilities (Domain Abstractions)
 
-Capabilities are domain-owned abstractions that describe what the Domain requires.
+Capabilities are domain-owned abstractions that describe what the Domain requires (AP-005).
 
-```csharp
-// Company.PaymentService.Domain/Abstractions/IFraudDetectionService.cs
-namespace Company.PaymentService.Domain.Abstractions;
+**File:** [`examples/csharp/Logos.PaymentService.Domain/Abstractions/IFraudDetectionService.cs`](../../examples/csharp/Logos.PaymentService.Domain/Abstractions/IFraudDetectionService.cs)
 
-/// <summary>
-/// Capability: Fraud detection expressed in domain terms.
-/// </summary>
-public interface IFraudDetectionService
-{
-    bool IsFraudulent(
-        decimal amount,
-        string currency,
-        string merchantId);
-}
-```
+The `IFraudDetectionService` capability defines fraud detection in domain terms.
 
-```csharp
-// Company.PaymentService.Domain/Abstractions/IPaymentRepository.cs
-namespace Company.PaymentService.Domain.Abstractions;
+**File:** [`examples/csharp/Logos.PaymentService.Domain/Abstractions/IPaymentRepository.cs`](../../examples/csharp/Logos.PaymentService.Domain/Abstractions/IPaymentRepository.cs)
 
-using Company.PaymentService.Domain.ValueObjects;
-
-/// <summary>
-/// Capability: Persistence expressed in domain terms.
-/// Responsible for identity generation and state management.
-/// </summary>
-public interface IPaymentRepository
-{
-    PaymentRecord? GetById(Guid id);
-
-    /// <summary>
-    /// Saves a payment record. The repository assigns the Id.
-    /// </summary>
-    PaymentRecord Save(
-        Money amount,
-        string merchantId,
-        PaymentStatus status,
-        string? declineReason);
-}
-```
+The `IPaymentRepository` capability defines persistence in domain terms.
 
 ---
 
@@ -232,138 +159,32 @@ public interface IPaymentRepository
 
 ## 4.1 Contract Models
 
-Contract models reference shared Value Objects from the Domain (AP-004 ง7).
+Contract models reference shared Value Objects from the Domain (AP-004 ยง7).
 
-```csharp
-// Company.PaymentService.Application/Contracts/AuthorizePaymentRequest.cs
-namespace Company.PaymentService.Application.Contracts;
+**File:** [`examples/csharp/Logos.PaymentService.Application/Contracts/AuthorizePaymentContract.cs`](../../examples/csharp/Logos.PaymentService.Application/Contracts/AuthorizePaymentContract.cs)
 
-using Company.PaymentService.Domain.ValueObjects;
+Defines `AuthorizePaymentRequest` and `AuthorizePaymentResponse` records that reference the shared `Money` and `PaymentStatus` value objects from the domain.
 
-/// <summary>
-/// Contract model that references shared Value Objects.
-/// No duplication - Money is defined once in Domain.
-/// </summary>
-public record AuthorizePaymentRequest(
-    Money Amount,
-    string MerchantId);
-```
+**File:** [`examples/csharp/Logos.PaymentService.Application/Contracts/GetPaymentContract.cs`](../../examples/csharp/Logos.PaymentService.Application/Contracts/GetPaymentContract.cs)
 
-```csharp
-// Company.PaymentService.Application/Contracts/AuthorizePaymentResponse.cs
-namespace Company.PaymentService.Application.Contracts;
-
-using Company.PaymentService.Domain.ValueObjects;
-
-/// <summary>
-/// Contract model that references shared Value Objects.
-/// </summary>
-public record AuthorizePaymentResponse(
-    Guid PaymentId,
-    bool IsAuthorized,
-    PaymentStatus Status,
-    Money Amount,
-    string? DeclineReason);
-```
-
-```csharp
-// Company.PaymentService.Application/Contracts/GetPaymentResponse.cs
-namespace Company.PaymentService.Application.Contracts;
-
-using Company.PaymentService.Domain.ValueObjects;
-
-/// <summary>
-/// Contract model for retrieving payment records.
-/// </summary>
-public record GetPaymentResponse(
-    Guid PaymentId,
-    Money Amount,
-    string MerchantId,
-    PaymentStatus Status,
-    DateTime CreatedAt,
-    string? DeclineReason);
-```
+Defines `GetPaymentRequest` and `GetPaymentResponse` records.
 
 ## 4.2 Use Cases
 
 Use cases orchestrate domain operations and manage transaction boundaries.
 
-```csharp
-// Company.PaymentService.Application/UseCases/AuthorizePaymentUseCase.cs
-namespace Company.PaymentService.Application.UseCases;
+**File:** [`examples/csharp/Logos.PaymentService.Application/UseCases/AuthorizePaymentUseCase.cs`](../../examples/csharp/Logos.PaymentService.Application/UseCases/AuthorizePaymentUseCase.cs)
 
-using Company.PaymentService.Application.Contracts;
-using Company.PaymentService.Domain.Services;
-using Company.PaymentService.Domain.Abstractions;
+The `AuthorizePaymentUseCase`:
+- Receives `AuthorizePaymentRequest` contract
+- Invokes `PaymentAuthorizationService` for business logic
+- Persists result via `IPaymentRepository`
+- Returns `AuthorizePaymentResponse` contract
+- **Synchronous execution** on the incoming thread
 
-/// <summary>
-/// Use case that orchestrates payment authorization.
-/// Domain service performs business logic.
-/// Repository manages state and identity.
-/// </summary>
-public class AuthorizePaymentUseCase(
-    PaymentAuthorizationService authorizationService,
-    IPaymentRepository paymentRepository)
+**File:** [`examples/csharp/Logos.PaymentService.Application/UseCases/GetPaymentUseCase.cs`](../../examples/csharp/Logos.PaymentService.Application/UseCases/GetPaymentUseCase.cs)
 
-    {
-        public async Task<AuthorizePaymentResponse> ExecuteAsync(
-            AuthorizePaymentRequest request,
-            CancellationToken cancellationToken)
-        {
-            // Execute business logic through stateless domain service
-            var result = await authorizationService.AuthorizeAsync(
-                request.Amount,
-                request.MerchantId,
-                cancellationToken);
-
-            // Persist state through repository (repository assigns Id)
-            var savedPayment = await paymentRepository.SaveAsync(
-            request.Amount,
-            request.MerchantId,
-            result.Status,
-            result.DeclineReason,
-            cancellationToken);
-
-        // Return contract model
-        return new AuthorizePaymentResponse(
-            savedPayment.Id,
-            result.IsAuthorized,
-            savedPayment.Status,
-            savedPayment.Amount,
-            savedPayment.DeclineReason);
-    }
-}
-```
-
-```csharp
-// Company.PaymentService.Application/UseCases/GetPaymentUseCase.cs
-namespace Company.PaymentService.Application.UseCases;
-
-using Company.PaymentService.Application.Contracts;
-using Company.PaymentService.Domain.Abstractions;
-
-/// <summary>
-/// Use case for retrieving payment records.
-/// </summary>
-public class GetPaymentUseCase(IPaymentRepository paymentRepository)
-{
-    public GetPaymentResponse? Execute(Guid paymentId)
-    {
-        var payment = paymentRepository.GetById(paymentId);
-
-        if (payment == null)
-            return null;
-
-        return new GetPaymentResponse(
-            payment.Id,
-            payment.Amount,
-            payment.MerchantId,
-            payment.Status,
-            payment.CreatedAt,
-            payment.DeclineReason);
-    }
-}
-```
+The `GetPaymentUseCase` retrieves payment details from the repository.
 
 ---
 
@@ -371,24 +192,13 @@ public class GetPaymentUseCase(IPaymentRepository paymentRepository)
 
 Configuration happens at the composition root; adapters are registered by interface.
 
-```csharp
-// Composition root (typically in Program.cs)
-var builder = WebApplication.CreateBuilder(args);
+**File:** [`examples/csharp/Logos.PaymentService.WebApi/Program.cs`](../../examples/csharp/Logos.PaymentService.WebApi/Program.cs)
 
-// Domain configuration - injected as parameters
-var maximumPaymentAmount = new Money(
-    builder.Configuration.GetValue<decimal>("Payment:MaximumAmount"),
-    builder.Configuration.GetValue<string>("Payment:Currency") ?? "USD");
-
-builder.Services.AddSingleton(maximumPaymentAmount);
-builder.Services.AddScoped<PaymentAuthorizationService>();
-builder.Services.AddScoped<AuthorizePaymentUseCase>();
-builder.Services.AddScoped<GetPaymentUseCase>();
-
-// Register capability implementations (details covered in later APs)
-builder.Services.AddScoped<IPaymentRepository, EntityFrameworkPaymentRepository>();
-builder.Services.AddScoped<IFraudDetectionService, ThirdPartyFraudDetectionService>();
-```
+The composition root:
+- Registers domain services with their dependencies
+- Registers use cases
+- Registers capability implementations (adapters)
+- Configures dependency injection container
 
 ---
 
@@ -405,11 +215,11 @@ The key point for AP-002 is:
 
 # 7. Key Points
 
-1. **The Domain has no external dependencies**: `Company.PaymentService.Domain` references no other service projects.
+1. **The Domain has no external dependencies**: `Logos.PaymentService.Domain` references no other service projects.
 
-2. **The Application references only the Domain**: `Company.PaymentService.Application` references only `Company.PaymentService.Domain`.
+2. **The Application references only the Domain**: `Logos.PaymentService.Application` references only `Logos.PaymentService.Domain`.
 
-3. **Value Objects are shared** (AP-004 ง7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
+3. **Value Objects are shared** (AP-004 ยง7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
 
 4. **Domain Services are stateless**: `PaymentAuthorizationService` performs business logic on Value Objects without managing state.
 
@@ -539,4 +349,4 @@ For many services, the stateless approach with Value Objects and external persis
 
 - AP-001: Architectural Principles
 - AP-002: Service Structure  
-- AP-004: Domain (ง7 Value Objects)
+- AP-004: Domain (ยง7 Value Objects)
