@@ -14,6 +14,24 @@ It shows how to structure a service using the Domain and Application units, how 
 
 This example uses a simplified payment authorization service to illustrate the concepts.
 
+> **📦 Compilable Example Available**  
+> A fully compilable version of this example is available at:  
+> [`examples/cpp/`](../../examples/cpp/)  
+>
+> You can build and run it with:
+> ```bash
+> cd examples/cpp
+> ./build.sh           # Linux/macOS
+> build.bat            # Windows
+> 
+> # Or manually:
+> mkdir build && cd build
+> cmake ..
+> cmake --build . --config Release
+> ./payment_cli help   # Linux/macOS
+> .\Release\payment_cli.exe help  # Windows
+> ```
+
 **Key Architectural Decisions:**
 
 - **Stateless Domain Services**: Business logic operates on Value Objects without entity classes
@@ -25,12 +43,16 @@ This example uses a simplified payment authorization service to illustrate the c
   - `unique_ptr` for single ownership
   - Raw pointers for non-owning dependencies
   - **No `shared_ptr` unless actual shared ownership is required** (C++ Core Guidelines F.27)
+- **Precise Money Handling**: Uses integer cents (int64_t) to avoid floating-point precision issues
+- **No Double Exposure**: Money class provides formatted output, never exposes double
 
 ---
 
 # 2. Project Structure
 
-A C++ service following AP-002 consists of the following library targets:
+The compilable example is organized into the following libraries and executable:
+
+**Location:** [`examples/cpp/`](../../examples/cpp/)
 
 ```
 logos_payment_service/
@@ -38,35 +60,21 @@ logos_payment_service/
 │   ├── value_objects/         (Shared with contracts per AP-004 §7)
 │   ├── services/
 │   └── abstractions/          (Capabilities)
-└── logos_payment_service_application/
-    ├── use_cases/
-    ├── contracts/             (References Domain ValueObjects)
-    └── container/             (Service container for DI)
+├── logos_payment_service_application/
+│   ├── use_cases/
+│   ├── contracts/             (References Domain ValueObjects)
+│   └── container/             (Service container for DI)
+├── logos_payment_service_adapters/
+│   └── (Infrastructure implementations)
+└── logos_payment_service_cli/
+    └── (CLI entry point)
 ```
 
-**CMake Example**:
+See the [full README](../../examples/cpp/README.md) for complete project structure, build instructions, and usage examples.
 
-```cmake
-# Domain library
-add_library(logos_payment_service_domain STATIC
-    domain/value_objects/money.cpp
-    domain/value_objects/payment_record.cpp
-    domain/services/payment_authorization_service.cpp
-)
-target_include_directories(logos_payment_service_domain PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+**Build Configuration:** [`examples/cpp/CMakeLists.txt`](../../examples/cpp/CMakeLists.txt)
 
-# Application library
-add_library(logos_payment_service_application STATIC
-    application/use_cases/authorize_payment_use_case.cpp
-    application/use_cases/get_payment_use_case.cpp
-    application/container/service_container.cpp
-)
-target_link_libraries(logos_payment_service_application PUBLIC
-    logos_payment_service_domain
-)
-```
+The Domain library has no external dependencies. The Application library depends only on Domain. Adapters implement Domain abstractions.
 
 ---
 
@@ -76,78 +84,238 @@ target_link_libraries(logos_payment_service_application PUBLIC
 
 Value Objects are immutable domain concepts shared between Domain and Application (AP-004 §7).
 
+### Money Value Object
+
+**File:** [`examples/cpp/logos_payment_service_domain/value_objects/money.h`](../../examples/cpp/logos_payment_service_domain/value_objects/money.h)
+
+**Implementation:** [`examples/cpp/logos_payment_service_domain/value_objects/money.cpp`](../../examples/cpp/logos_payment_service_domain/value_objects/money.cpp)
+
+The `Money` value object:
+- Stores amounts as integer cents (int64_t) to avoid floating-point precision issues
+- Accepts string input for flexibility ("10.50" or "10,50")
+- Provides `ToString()` for formatted display with thousands separators and currency
+- **No double in public API** - enforces correct usage patterns
+- Supports international formatting (US, European, Swiss formats)
+
+**Key Design Decision:** Money uses integer cents internally and provides formatted string output. This eliminates floating-point precision errors and enforces proper display formatting with currency codes.
+
+See: [Money Implementation Details](../../examples/cpp/MONEY_IMPLEMENTATION.md) and [No Double Policy](../../examples/cpp/NO_DOUBLE_POLICY.md)
+
+### Payment Status
+
+**File:** [`examples/cpp/logos_payment_service_domain/value_objects/payment_status.h`](../../examples/cpp/logos_payment_service_domain/value_objects/payment_status.h)
+
+The `PaymentStatus` enum represents the authorization state (Pending, Authorized, Declined).
+
+### Payment Record
+
+**File:** [`examples/cpp/logos_payment_service_domain/value_objects/payment_record.h`](../../examples/cpp/logos_payment_service_domain/value_objects/payment_record.h)
+
+The `PaymentRecord` struct represents a complete payment record with identity assigned by the repository.
+
+## 3.2 Domain Services
+
+Domain services contain business logic and work with Value Objects. They are stateless.
+
+**File:** [`examples/cpp/logos_payment_service_domain/services/payment_authorization_service.h`](../../examples/cpp/logos_payment_service_domain/services/payment_authorization_service.h)
+
+**Implementation:** [`examples/cpp/logos_payment_service_domain/services/payment_authorization_service.cpp`](../../examples/cpp/logos_payment_service_domain/services/payment_authorization_service.cpp)
+
+The `PaymentAuthorizationService`:
+- Stateless service that performs payment authorization business logic
+- Works with Value Objects; state persistence is handled by repository
+- Validates amount is positive
+- Checks for fraud via `IFraudDetectionService` capability
+- Validates amount against maximum limit
+- Returns `PaymentAuthorizationResult` with decision and optional decline reason
+
+## 3.3 Capabilities (Domain Abstractions)
+
+Capabilities are domain-owned abstractions that describe what the Domain requires.
+
+### Fraud Detection Capability
+
+**File:** [`examples/cpp/logos_payment_service_domain/abstractions/fraud_detection_service.h`](../../examples/cpp/logos_payment_service_domain/abstractions/fraud_detection_service.h)
+
+The `IFraudDetectionService` interface:
+- Abstract interface owned by the Domain
+- Accepts amount as int64_t cents (not double) for precision
+- Implementation provided by adapters layer
+
+### Payment Repository Capability
+
+**File:** [`examples/cpp/logos_payment_service_domain/abstractions/payment_repository.h`](../../examples/cpp/logos_payment_service_domain/abstractions/payment_repository.h)
+
+The `IPaymentRepository` interface:
+- Defines persistence operations in domain terms
+- Responsible for identity generation and state management
+- Returns `std::optional<PaymentRecord>` for nullable results
+
+---
+
+# 4. Application Layer
+
+## 4.1 Contract Models
+
+Contract models reference shared Value Objects from the Domain (AP-004 §7).
+
+**Authorize Payment Request:** [`examples/cpp/logos_payment_service_application/contracts/authorize_payment_request.h`](../../examples/cpp/logos_payment_service_application/contracts/authorize_payment_request.h)
+
+**Authorize Payment Response:** [`examples/cpp/logos_payment_service_application/contracts/authorize_payment_response.h`](../../examples/cpp/logos_payment_service_application/contracts/authorize_payment_response.h)
+
+**Get Payment Response:** [`examples/cpp/logos_payment_service_application/contracts/get_payment_response.h`](../../examples/cpp/logos_payment_service_application/contracts/get_payment_response.h)
+
+Contract models reference `Money` and other Value Objects directly from the Domain - no duplication.
+
+## 4.2 Service Container (Dependency Injection)
+
+**File:** [`examples/cpp/logos_payment_service_application/container/service_container.h`](../../examples/cpp/logos_payment_service_application/container/service_container.h)
+
+A simple template-based service container that:
+- Owns service instances with `unique_ptr`
+- Provides type-safe resolution
+- Manages service lifetimes
+- No external dependencies required
+
+## 4.3 Use Cases
+
+Use cases receive their dependencies through constructor injection.
+
+### Authorize Payment Use Case
+
+**File:** [`examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.h`](../../examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.h)
+
+**Implementation:** [`examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.cpp`](../../examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.cpp)
+
+The `AuthorizePaymentUseCase`:
+- Orchestrates payment authorization workflow
+- Executes business logic via `PaymentAuthorizationService`
+- Persists state via `IPaymentRepository`
+- Returns contract model with result
+
+### Get Payment Use Case
+
+**File:** [`examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.h`](../../examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.h)
+
+**Implementation:** [`examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.cpp`](../../examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.cpp)
+
+Simple retrieval use case that queries the repository.
+
+---
+
+# 5. Composition Root
+
+Configuration is loaded and services are registered in a container.
+
+**File:** [`examples/cpp/logos_payment_service_cli/main.cpp`](../../examples/cpp/logos_payment_service_cli/main.cpp)
+
+The composition root:
+- Creates the service container
+- Registers adapters (implementations of domain capabilities)
+- Registers domain services with configuration
+- Creates use cases with resolved dependencies
+- Routes to command handlers
+
+---
+
+# 6. Adapter Registration
+
+Adapters implement domain capabilities.
+
+**In-Memory Repository:** [`examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.h`](../../examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.h) and [`.cpp`](../../examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.cpp)
+
+**Simple Fraud Detection:** [`examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.h`](../../examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.h) and [`.cpp`](../../examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.cpp)
+
+The key point for AP-002 is:
+- Domain defines **what** it needs (capabilities/abstractions)
+- Adapters provide **how** it's implemented
+- Service container connects them
+
+---
+
+# 7. Key Points
+
+1. **The Domain has no external dependencies**: `logos_payment_service_domain` links against no other service targets.
+
+2. **The Application depends only on the Domain**: `logos_payment_service_application` links only against `logos_payment_service_domain`.
+
+3. **Value Objects are shared** (AP-004 §7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
+
+4. **Domain Services are stateless**: `PaymentAuthorizationService` performs business logic on Value Objects without managing state.
+
+5. **State is external**: The repository (database) manages identity generation, persistence, and retrieval. The domain doesn't need entity classes for simple operations.
+
+6. **Template-based service container**: Provides type-safe dependency injection and manages service lifetimes without requiring a framework.
+
+7. **Business logic is pure**: Authorization logic can be tested without any database or infrastructure.
+
+8. **Configuration in composition root**: Domain services accept configuration as constructor parameters rather than hardcoding values, allowing flexibility and testability.
+
+9. **Explicit ownership semantics** (C++ Core Guidelines):
+   - **Service container owns services**: Uses `unique_ptr` for single ownership
+   - **Dependencies are non-owning**: Services take raw pointers (`T*`) to dependencies
+   - **No `shared_ptr` by default**: Only use when actual shared ownership is needed (F.27)
+   - **Rationale**: Clear ownership prevents memory leaks, clarifies lifetimes, and avoids the common anti-pattern of `shared_ptr` everywhere
+
+10. **Precise money handling**: Money uses integer cents internally, eliminating floating-point precision issues. No double in public API.
+
+---
+
+# 8. Testing
+
+Business logic can be tested in complete isolation using GoogleMock.
+
+Example test structure:
+
 ```cpp
-// logos_payment_service_domain/value_objects/money.h
-#pragma once
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "domain/services/payment_authorization_service.h"
 
-#include <string>
-#include <stdexcept>
+using namespace logos::payment_service::domain;
 
-namespace logos::payment_service::domain::value_objects {
-
-/// Shared Value Object representing monetary amounts.
-/// Used by both Domain logic and Application contracts (AP-004 §7).
-class Money {
+class MockFraudDetectionService : public abstractions::IFraudDetectionService {
 public:
-    Money(double amount, const std::string& currency);
-
-    static Money Zero(const std::string& currency);
-
-    Money Add(const Money& other) const;
-    bool IsPositive() const;
-    bool IsGreaterThan(const Money& other) const;
-
-    double GetAmount() const { return amount_; }
-    const std::string& GetCurrency() const { return currency_; }
-
-    bool operator==(const Money& other) const;
-    bool operator!=(const Money& other) const;
-
-private:
-    double amount_;
-    std::string currency_;
+    MOCK_METHOD(bool, IsFraudulent,
+        (int64_t, const std::string&, const std::string&), (override));
 };
 
-} // namespace logos::payment_service::domain::value_objects
+TEST(PaymentAuthorizationServiceTest, Authorize_Declines_When_Amount_Exceeds_Maximum) {
+    MockFraudDetectionService fraud_detection;
+    EXPECT_CALL(fraud_detection, IsFraudulent(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Return(false));
+
+    Money maximum_amount = Money::FromCents(1000000, "USD");  // $10,000.00
+    services::PaymentAuthorizationService service(&fraud_detection, maximum_amount);
+    Money amount = Money::FromCents(1500000, "USD");  // $15,000.00
+
+    auto result = service.Authorize(amount, "MERCH-001");
+
+    ASSERT_FALSE(result.is_authorized);
+    ASSERT_EQ(result.status, value_objects::PaymentStatus::Declined);
+    ASSERT_TRUE(result.decline_reason.has_value());
+}
 ```
 
-<details>
-<summary><b>Implementation</b>: <code>money.cpp</code></summary>
+---
 
-```cpp
-// logos_payment_service_domain/value_objects/money.cpp
-#include "value_objects/money.h"
+# 9. Running the Example
 
-namespace logos::payment_service::domain::value_objects {
+See [QUICKSTART.md](../../examples/cpp/QUICKSTART.md) for detailed build and run instructions.
 
-Money::Money(double amount, const std::string& currency)
-    : amount_(amount), currency_(currency) {
-}
+Quick example:
+```bash
+cd examples/cpp/build
+./payment_cli authorize --amount 100.00 --currency USD --merchant MERCH-001
+# Output: Payment ID: PAY-000001, Authorized: YES, Amount: 100.00 USD
 
-Money Money::Zero(const std::string& currency) {
-    return Money(0.0, currency);
-}
+./payment_cli authorize --amount 5000.01 --currency USD --merchant MERCH-001
+# Output: Declined - Suspected fraud (amount > $5,000.00)
+```
 
-Money Money::Add(const Money& other) const {
-    if (currency_ != other.currency_) {
-        throw std::runtime_error("Cannot add money with different currencies");
-    }
-    return Money(amount_ + other.amount_, currency_);
-}
+---
 
-bool Money::IsPositive() const {
-    return amount_ > 0;
-}
-
-bool Money::IsGreaterThan(const Money& other) const {
-    if (currency_ != other.currency_) {
-        throw std::runtime_error("Cannot compare money with different currencies");
-    }
-    return amount_ > other.amount_;
-}
-
-bool Money::operator==(const Money& other) const {
-    return amount_ == other.amount_ && currency_ == other.currency_;
+**End of Document**
 }
 
 bool Money::operator!=(const Money& other) const {

@@ -11,30 +11,41 @@
 
 This example demonstrates a command-line interface (CLI) that invokes use cases from the [C++ implementation example](AP-002-Implementation-Cpp.md).
 
+> **?? Compilable Example Available**  
+> A fully compilable version of this example is available at:  
+> [`examples/cpp/`](../../examples/cpp/)  
+>
+> You can build and run it with:
+> ```bash
+> cd examples/cpp
+> ./build.sh           # Linux/macOS
+> build.bat            # Windows
+> ./payment_cli help   # Run the CLI
+> ```
+
 **Key Points:**
 - CLI parses command-line arguments
 - Maps arguments to Contract Models
 - Invokes Use Cases synchronously
-- Outputs results to console
+- Outputs results to console with proper formatting
 - Thread lifecycle: Parse ? Execute ? Output ? Exit
 
 ---
 
 ## 2. Project Structure
 
+**Location:** [`examples/cpp/logos_payment_service_cli/`](../../examples/cpp/logos_payment_service_cli/)
+
 ```
 logos_payment_service/
 ??? logos_payment_service_domain/           (From AP-002 example)
 ??? logos_payment_service_application/      (From AP-002 example)
 ??? logos_payment_service_adapters/         (Adapters - AP-007)
-??? logos_payment_service_cli/              (New - CLI)
+??? logos_payment_service_cli/              (CLI entry point)
     ??? commands/
-    ?   ??? authorize_command.h
-    ?   ??? authorize_command.cpp
-    ?   ??? get_payment_command.h
-    ?   ??? get_payment_command.cpp
-    ??? cli_parser.h
-    ??? cli_parser.cpp
+    ?   ??? authorize_command.h/.cpp
+    ?   ??? get_payment_command.h/.cpp
+    ??? cli_parser.h/.cpp
     ??? main.cpp
 ```
 
@@ -42,63 +53,184 @@ logos_payment_service/
 
 ## 3. CLI Parser
 
-### 3.1 Parser Header
+The CLI parser extracts commands, options, flags, and positional arguments from the command line.
 
-```cpp
-// logos_payment_service_cli/cli_parser.h
-#pragma once
+**Header:** [`examples/cpp/logos_payment_service_cli/cli_parser.h`](../../examples/cpp/logos_payment_service_cli/cli_parser.h)
 
-#include <string>
-#include <vector>
-#include <map>
+**Implementation:** [`examples/cpp/logos_payment_service_cli/cli_parser.cpp`](../../examples/cpp/logos_payment_service_cli/cli_parser.cpp)
 
-namespace logos::payment_service::cli {
+The `CliParser` class:
+- Extracts command name (first argument)
+- Parses flags (e.g., `--help`)
+- Parses options with values (e.g., `--amount 100.00`)
+- Collects positional arguments
+- Provides type-safe accessors
 
-/// @brief Command-line argument parser
-class CliParser {
-public:
-    CliParser(int argc, char* argv[]);
+---
 
-    /// Get the command name (first argument)
-    std::string GetCommand() const;
+## 4. Authorize Command
 
-    /// Check if a flag exists (e.g., --help)
-    bool HasFlag(const std::string& flag) const;
+The authorize command handles payment authorization requests.
 
-    /// Get value for an option (e.g., --amount 100)
-    std::string GetOption(const std::string& option) const;
+**Header:** [`examples/cpp/logos_payment_service_cli/commands/authorize_command.h`](../../examples/cpp/logos_payment_service_cli/commands/authorize_command.h)
 
-    /// Get positional argument by index
-    std::string GetPositional(size_t index) const;
+**Implementation:** [`examples/cpp/logos_payment_service_cli/commands/authorize_command.cpp`](../../examples/cpp/logos_payment_service_cli/commands/authorize_command.cpp)
 
-    /// Check if valid command was provided
-    bool IsValid() const;
+The `AuthorizeCommand` class:
+- Parses CLI arguments (amount, currency, merchant)
+- Creates `Money` from string input
+- Maps to `AuthorizePaymentRequest` contract
+- Invokes `AuthorizePaymentUseCase` synchronously
+- Formats output using `Money::ToString()` for proper display
+- Returns exit code based on authorization result
 
-private:
-    std::string command_;
-    std::vector<std::string> positional_args_;
-    std::map<std::string, std::string> options_;
-    std::vector<std::string> flags_;
-};
-
-} // namespace logos::payment_service::cli
+**Usage Example:**
+```bash
+payment-cli authorize --amount 100.00 --currency USD --merchant MERCH-001
 ```
 
-### 3.2 Parser Implementation
+**Output:**
+```
+=== Payment Authorization Result ===
+Payment ID:     PAY-000001
+Authorized:     YES
+Status:         Authorized
+Amount:         100.00 USD
+====================================
+```
 
+---
+
+## 5. Get Payment Command
+
+The get payment command retrieves payment details by ID.
+
+**Header:** [`examples/cpp/logos_payment_service_cli/commands/get_payment_command.h`](../../examples/cpp/logos_payment_service_cli/commands/get_payment_command.h)
+
+**Implementation:** [`examples/cpp/logos_payment_service_cli/commands/get_payment_command.cpp`](../../examples/cpp/logos_payment_service_cli/commands/get_payment_command.cpp)
+
+The `GetPaymentCommand` class:
+- Extracts payment ID from positional argument
+- Invokes `GetPaymentUseCase`
+- Formats payment details for display
+- Uses `Money::ToString()` for amount formatting
+- Handles not-found case
+
+**Usage Example:**
+```bash
+payment-cli get PAY-000001
+```
+
+**Output:**
+```
+=== Payment Details ===
+Payment ID:     PAY-000001
+Amount:         100.00 USD
+Merchant ID:    MERCH-001
+Status:         Authorized
+Created At:     2024-12-07 10:30:45
+=======================
+```
+
+---
+
+## 6. Main Entry Point
+
+The main function wires everything together.
+
+**File:** [`examples/cpp/logos_payment_service_cli/main.cpp`](../../examples/cpp/logos_payment_service_cli/main.cpp)
+
+The composition root:
+1. **Parses command line** using `CliParser`
+2. **Creates service container** for dependency injection
+3. **Registers adapters** (in-memory repository, fraud detection)
+4. **Registers domain services** with configuration
+5. **Creates use cases** with resolved dependencies
+6. **Routes to command handlers** based on command name
+7. **Executes command** and returns exit code
+
+---
+
+## 7. Key Implementation Details
+
+### Money Formatting
+
+The CLI uses `Money::ToString()` which provides:
+- Automatic thousands separators (e.g., "1,234.56")
+- Currency code display
+- No double exposure - type-safe formatting
+
+Example:
 ```cpp
-// logos_payment_service_cli/cli_parser.cpp
-#include "cli_parser.h"
-#include <algorithm>
+Money amount = Money::FromCents(123456, "USD");
+std::cout << amount.ToString() << "\n";  // Output: "1,234.56 USD"
+```
 
-namespace logos::payment_service::cli {
+### Synchronous Execution
 
-CliParser::CliParser(int argc, char* argv[]) {
-    if (argc < 2) {
-        return;
-    }
+The thread lifecycle is simple:
+1. Parse arguments
+2. Create request contract
+3. Execute use case (synchronous)
+4. Format and display result
+5. Exit process
 
-    command_ = argv[1];
+No async/await, no callbacks, no futures - just straightforward sequential execution.
+
+### Error Handling
+
+- Invalid input: Shows usage message
+- Payment not found: Returns error message and non-zero exit code
+- Parsing errors: Caught and displayed with helpful context
+
+---
+
+## 8. Running the Example
+
+See [QUICKSTART.md](../../examples/cpp/QUICKSTART.md) for detailed instructions.
+
+### Build
+```bash
+cd examples/cpp
+mkdir build && cd build
+cmake ..
+cmake --build . --config Release
+```
+
+### Run Examples
+
+```bash
+# Show help
+./payment_cli help
+
+# Authorize a payment
+./payment_cli authorize --amount 100.00 --currency USD --merchant MERCH-001
+
+# Test fraud detection (> $5,000)
+./payment_cli authorize --amount 5000.01 --currency USD --merchant MERCH-001
+
+# Get payment details
+./payment_cli get PAY-000001
+```
+
+---
+
+## 9. Comparison with C# Web API
+
+| Aspect | C++ CLI | C# Web API |
+|--------|---------|------------|
+| **Entry Point** | Command line | HTTP endpoint |
+| **Request Format** | CLI arguments | JSON body |
+| **Response Format** | Console output | JSON response |
+| **Thread Model** | Parse ? Execute ? Exit | HTTP request ? Execute ? HTTP response |
+| **Use Case Invocation** | Same `AuthorizePaymentUseCase` | Same `AuthorizePaymentUseCase` |
+| **Domain Logic** | Identical | Identical |
+
+Both are thin adapters around the same use cases and domain logic.
+
+---
+
+**End of Document**
 
     for (int i = 2; i < argc; ++i) {
         std::string arg = argv[i];
