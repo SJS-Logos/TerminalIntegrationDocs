@@ -4,7 +4,7 @@ using Logos.PaymentService.Domain.Abstractions;
 using Logos.PaymentService.Domain.Services;
 using Logos.PaymentService.Domain.ValueObjects;
 using Logos.PaymentService.Adapters;
-using Logos.PaymentService.Messaging.Consumers;
+using Logos.PaymentService.Messaging;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -21,36 +21,8 @@ builder.Services.AddScoped<GetPaymentUseCase>();
 builder.Services.AddSingleton<IPaymentRepository, InMemoryPaymentRepository>();
 builder.Services.AddSingleton<IFraudDetectionService, SimpleFraudDetectionService>();
 
-// Register MassTransit (technology initialized close to the adapter/consumer)
-builder.Services.AddMassTransit(x =>
-{
-    // Register consumers
-    x.AddConsumer<AuthorizePaymentConsumer>();
-
-    // Configure RabbitMQ transport (technology details)
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        cfg.Host("localhost", h =>
-        {
-            h.Username("guest");
-            h.Password("guest");
-        });
-
-        // Configure retry policy
-        cfg.UseMessageRetry(r => r.Incremental(
-            retryLimit: 3,
-            initialInterval: TimeSpan.FromSeconds(1),
-            intervalIncrement: TimeSpan.FromSeconds(2)));
-
-        // Configure endpoint for payment authorization
-        cfg.ReceiveEndpoint("payment-authorization-queue", e =>
-        {
-            e.ConfigureConsumer<AuthorizePaymentConsumer>(context);
-            e.PrefetchCount = 10;
-            e.ConcurrentMessageLimit = 5;
-        });
-    });
-});
+// Register MassTransit using centralized configuration from Messaging project
+builder.Services.AddPaymentServiceMessaging(builder.Configuration);
 
 var host = builder.Build();
 host.Run();
