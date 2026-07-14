@@ -39,14 +39,23 @@ Logos.Payment/
 |   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-`-- Logos.Payment.MasstransitHost/         # MassTransit Host Unit (AP-003)
-    |-- Consumers/
-    |   `-- AuthorizePaymentConsumer.cs
-    |-- Messages/
-    |   |-- AuthorizePaymentCommand.cs
-    |   `-- PaymentAuthorizedEvent.cs
+|-- Logos.Payment.MasstransitHost/         # MassTransit Host Unit (AP-003)
+|   |-- Consumers/
+|   |   `-- AuthorizePaymentConsumer.cs
+|   |-- Messages/
+|   |   |-- AuthorizePaymentCommand.cs
+|   |   `-- PaymentAuthorizedEvent.cs
+|   |-- Configuration/
+|   |   `-- ServiceConfiguration.cs
+|   `-- Program.cs
+|
+`-- Logos.Payment.CliHost/                 # CLI Host Unit (AP-003)
+    |-- Commands/
+    |   |-- AuthorizeCommand.cs
+    |   `-- GetPaymentCommand.cs
     |-- Configuration/
     |   `-- ServiceConfiguration.cs
+    |-- CliParser.cs
     `-- Program.cs
 ```
 
@@ -69,6 +78,7 @@ The example demonstrates **clean separation of concerns**:
 ### 3. Host Units (Depend on: Core, Infrastructure)
 - HTTP controllers (`HttpHost`)
 - Message consumers (`MasstransitHost`)
+- CLI commands (`CliHost`)
 - Transport endpoints + `Mappings/` + `Configuration/`
 - Thin translation layer between transport and use cases
 - **Technology initialized in composition root**
@@ -93,6 +103,17 @@ dotnet run
 The API will start at `http://localhost:5000` with Swagger UI at the root.
 
 Open your browser to: **http://localhost:5000**
+
+### Run CLI
+
+```bash
+cd Logos.Payment.CliHost
+dotnet run -- authorize --amount 100.00 --currency USD --merchant MERCH-001
+dotnet run -- get <payment-id>
+dotnet run -- help
+```
+
+See [Logos.Payment.CliHost/README.md](Logos.Payment.CliHost/README.md) for detailed CLI documentation.
 
 ### Test the API
 
