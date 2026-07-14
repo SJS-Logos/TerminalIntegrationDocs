@@ -5,65 +5,72 @@ This is a **fully compilable** example implementing the architectural patterns d
 ## Project Structure
 
 ```
-Logos.PaymentService/
-|-- Logos.PaymentService.Domain/          # Domain Layer (AP-002)
-|   |-- Entities/
-|   |   `-- Payment.cs
-|   |-- ValueObjects/
+Logos.Payment/
+|-- Logos.Payment.Core/                    # Core Unit (AP-002)
+|   |-- Domain/
+|   |   |-- Entities/
+|   |   |   `-- Payment.cs
+|   |   `-- Services/
+|   |       `-- PaymentAuthorizationService.cs
+|   |-- SharedKernel/                      # Shared business datatypes (AP-002)
 |   |   |-- Money.cs
 |   |   `-- PaymentStatus.cs
-|   |-- Abstractions/                     # Capabilities (AP-005)
+|   |-- Capabilities/                      # Domain-owned abstractions
 |   |   |-- IPaymentRepository.cs
 |   |   `-- IFraudDetectionService.cs
-|   `-- Services/
-|       `-- PaymentAuthorizationService.cs
+|   `-- Application/
+|       |-- Contracts/
+|       |   |-- AuthorizePaymentContract.cs
+|       |   `-- GetPaymentContract.cs
+|       `-- UseCases/
+|           |-- AuthorizePaymentUseCase.cs
+|           `-- GetPaymentUseCase.cs
 |
-|-- Logos.PaymentService.Application/     # Application Layer (AP-002)
-|   |-- Contracts/
-|   |   |-- AuthorizePaymentContract.cs
-|   |   `-- GetPaymentContract.cs
-|   `-- UseCases/
-|       |-- AuthorizePaymentUseCase.cs
-|       `-- GetPaymentUseCase.cs
-|
-|-- Logos.PaymentService.Adapters/        # Adapter Implementations (AP-007)
+|-- Logos.Payment.Infrastructure.InMemory/ # Infrastructure Unit (capability impls)
 |   |-- InMemoryPaymentRepository.cs
 |   `-- SimpleFraudDetectionService.cs
 |
-|-- Logos.PaymentService.WebApi/          # HTTP Incoming Implementation (AP-003)
+|-- Logos.Payment.HttpHost/                # HTTP Host Unit (AP-003)
 |   |-- Controllers/
 |   |   `-- PaymentsController.cs
+|   |-- Mappings/
+|   |   `-- PaymentDtos.cs
+|   |-- Configuration/
+|   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-`-- Logos.PaymentService.Worker/          # MassTransit Worker Service (AP-003)
-    |-- Program.cs                        # Technology initialized here
-    `-- README.md                         # Worker-specific docs
+`-- Logos.Payment.MasstransitHost/         # MassTransit Host Unit (AP-003)
+    |-- Consumers/
+    |   `-- AuthorizePaymentConsumer.cs
+    |-- Messages/
+    |   |-- AuthorizePaymentCommand.cs
+    |   `-- PaymentAuthorizedEvent.cs
+    |-- Configuration/
+    |   `-- ServiceConfiguration.cs
+    `-- Program.cs
 ```
 
 ## Layer Separation
 
 The example demonstrates **clean separation of concerns**:
 
-### 1. Domain Layer (No Dependencies)
-- Contains business logic, entities, and value objects
-- Defines capability interfaces (Ports)
-- **Zero external dependencies**
+### 1. Core Unit (Domain + SharedKernel + Capabilities + Application)
+- `Domain/` contains business logic, entities, and domain services
+- `SharedKernel/` holds shared immutable business datatypes (`Money`, `PaymentStatus`)
+- `Capabilities/` defines capability interfaces (Ports)
+- `Application/` contains use cases and contract models
+- **No Host dependencies**
 
-### 2. Application Layer (Depends on: Domain)
-- Contains use cases and contract models
-- Orchestrates domain operations
-- **No framework dependencies**
-
-### 3. Adapters Layer (Depends on: Domain)
+### 2. Infrastructure Unit (Depends on: Core)
 - Implements capability interfaces
 - Translates between domain and external systems
-- Technology-specific implementations
+- Technology-specific implementations (`InMemory`)
 
-### 4. Incoming Implementations (Depend on: Application, Adapters)
-- HTTP controllers (WebApi)
-- Message consumers (Worker with MassTransit)
+### 3. Host Units (Depend on: Core, Infrastructure)
+- HTTP controllers (`HttpHost`)
+- Message consumers (`MasstransitHost`)
+- Transport endpoints + `Mappings/` + `Configuration/`
 - Thin translation layer between transport and use cases
-- **Direct use case invocation**
 - **Technology initialized in composition root**
 
 ## Building and Running
@@ -79,7 +86,7 @@ dotnet build
 
 ### Run HTTP API
 ```bash
-cd Logos.PaymentService.WebApi
+cd Logos.Payment.HttpHost
 dotnet run
 ```
 
@@ -203,18 +210,18 @@ Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 ## Extending the Example
 
 ### Add a New Use Case
-1. Define contract models in `Application/Contracts/`
-2. Implement use case in `Application/UseCases/`
-3. Add controller endpoint in `WebApi/Controllers/`
+1. Define contract models in `Core/Application/Contracts/`
+2. Implement use case in `Core/Application/UseCases/`
+3. Add controller endpoint in `HttpHost/Controllers/`
 
 ### Add a New Adapter
-1. Implement the capability interface in `Adapters/`
-2. Register in `Program.cs` DI container
+1. Implement the capability interface in an `Infrastructure.*` Unit
+2. Register in the Host `Configuration/ServiceConfiguration.cs`
 
 ### Add MassTransit Consumer
-1. Define message in `Messaging/Messages/`
-2. Implement consumer in `Messaging/Consumers/`
-3. Configure in `Program.cs`
+1. Define message in `MasstransitHost/Messages/`
+2. Implement consumer in `MasstransitHost/Consumers/`
+3. Configure in `MasstransitHost/Configuration/ServiceConfiguration.cs`
 
 ## Documentation References
 

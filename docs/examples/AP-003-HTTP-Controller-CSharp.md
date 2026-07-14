@@ -1,5 +1,7 @@
 # HTTP Controller Example: C#
 
+# HTTP Controller Example: C#
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
@@ -13,7 +15,7 @@ This example demonstrates how to add an HTTP controller that receives requests a
 
 > **📦 Compilable Example Available**  
 > A fully compilable and runnable version of this example is available at:  
-> [`examples/csharp/Logos.PaymentService.WebApi/`](../../examples/csharp/)  
+> `Logos.Payment.HttpHost/`  
 >
 > See the [README](../../examples/csharp/README.md) for build and run instructions.
 
@@ -30,7 +32,7 @@ This example demonstrates how to add an HTTP controller that receives requests a
 
 ### 2.1 Payment Controller
 
-**File:** [`examples/csharp/Logos.PaymentService.WebApi/Controllers/PaymentsController.cs`](../../examples/csharp/Logos.PaymentService.WebApi/Controllers/PaymentsController.cs)
+**File:** `Logos.Payment.HttpHost/Controllers/PaymentsController.cs`
 
 The `PaymentsController`:
 - Receives HTTP requests via ASP.NET Core
@@ -69,7 +71,7 @@ See the implementation in the controller file for examples of:
 - XML documentation with `<see cref>` references to domain contracts
 - Swagger/OpenAPI integration
 
-**File:** [`examples/csharp/Logos.PaymentService.WebApi/Controllers/PaymentsController.cs`](../../examples/csharp/Logos.PaymentService.WebApi/Controllers/PaymentsController.cs)
+**File:** `Logos.Payment.HttpHost/Mappings/PaymentsHttpMapping.cs`
 
 The DTOs defined inline in the controller demonstrate:
 - Simple property mapping (HTTP decimal/string -> Domain Money)
@@ -80,7 +82,7 @@ The DTOs defined inline in the controller demonstrate:
 
 ## 4. Swagger/OpenAPI Configuration
 
-**File:** [`examples/csharp/Logos.PaymentService.WebApi/Program.cs`](../../examples/csharp/Logos.PaymentService.WebApi/Program.cs)
+**File:** `Logos.Payment.HttpHost/Configuration/ServiceConfiguration.cs`
 
 The Program.cs configures Swagger with:
 - OpenAPI document generation
@@ -129,13 +131,12 @@ This approach:
 ## 4. Program.cs Configuration
 
 ```csharp
-// WebApi/Program.cs
-using Logos.PaymentService.Application.UseCases;
-using Logos.PaymentService.Domain.Services;
-using Logos.PaymentService.Domain.Abstractions;
-using Logos.PaymentService.Domain.ValueObjects;
-using Logos.PaymentService.Infrastructure.Persistence;
-using Logos.PaymentService.Infrastructure.ExternalServices;
+// Logos.Payment.HttpHost/Program.cs
+using Logos.Payment.Core.Application.UseCases;
+using Logos.Payment.Core.Domain.Services;
+using Logos.Payment.Core.Capabilities.Persistence;
+using Logos.Payment.Core.Capabilities.ExternalServices;
+using Logos.Payment.Core.SharedKernel.Money;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -183,24 +184,21 @@ app.Run();
 ## 5. Project Structure
 
 ```
-Logos.PaymentService/
-├── Logos.PaymentService.Domain/           (From AP-002 example)
-│   ├── ValueObjects/
-│   ├── Services/
-│   ├── Abstractions/
-├── Logos.PaymentService.Application/      (From AP-002 example)
-│   ├── UseCases/
-│   ├── Contracts/
-├── Logos.PaymentService.Infrastructure/   (Adapters - AP-007)
-│   ├── Persistence/
-│   ├── ExternalServices/
-├── Logos.PaymentService.WebApi/           (New - HTTP incoming)
-    ├── Controllers/
-    │   ├── PaymentsController.cs
-    ├── Models/                              (HTTP DTOs)
-    │   ├── AuthorizePaymentDto.cs
-    │   └── PaymentDetailsDto.cs
-    ├── Program.cs
+Logos.Payment.Core/                    (From AP-002 example)
+├── Domain/
+├── SharedKernel/
+├── Capabilities/
+└── Application/
+
+Logos.Payment.HttpHost/                (HTTP incoming)
+├── Controllers/
+│   └── PaymentsController.cs
+├── Mappings/
+│   ├── AuthorizePaymentHttpMapping.cs
+│   └── PaymentDetailsHttpMapping.cs
+├── Configuration/
+│   └── ServiceConfiguration.cs
+└── Program.cs
 ```
 
 ---
@@ -211,7 +209,7 @@ Logos.PaymentService/
 
 - **HTTP DTOs** (`AuthorizePaymentDto`) - Transport format (JSON over HTTP)
 - **Contract Models** (`AuthorizePaymentRequest`) - Application boundary
-- **Value Objects** (`Money`) - Shared domain concepts
+- **Shared Kernel types** (`Money`) - Shared business concepts
 
 The controller maps between HTTP DTOs and Contract Models.
 

@@ -1,5 +1,7 @@
 # AP-002 Implementation Guide: C#
 
+# AP-002 Implementation Guide: C#
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-002, AP-004  
@@ -10,7 +12,7 @@
 
 This document demonstrates a concrete implementation of the service structure defined in AP-002 using C# and .NET.
 
-It shows how to structure a service using the Domain and Application units, how to define shared Value Objects (per AP-004 §7), and how Domain Services perform business logic while state is managed externally.
+It shows how to structure a service using the Core model from AP-002, including `Domain/`, `SharedKernel/`, `Capabilities/`, and `Application/`, and how Domain Services perform business logic while state is managed externally.
 
 This example uses a simplified payment authorization service to illustrate the concepts.
 
@@ -30,42 +32,47 @@ This example uses a simplified payment authorization service to illustrate the c
 
 - **Stateless Domain Services**: Business logic operates on Value Objects without entity classes
 - **External State Management**: Identity and state persistence handled by the repository (database)
-- **Shared Value Objects**: Value Objects defined once in Domain, referenced by Application contracts (AP-004 §7)
+- **Shared Kernel**: Shared immutable business datatypes defined once in `SharedKernel/`, referenced by Domain, Capabilities, and Application
 - **Synchronous Request-Response**: Thread starts with an event (request), executes business logic, persists state, and ends with a message (response). No async in domain/application layers; threads are short-lived.
 
 ---
 
 # 2. Project Structure
 
-The compilable example is organized into the following projects:
+The example structure aligned to AP-002 is organized into the following projects and folders:
 
 **Location:** [`examples/csharp/`](../../examples/csharp/)
 
 ```
-Logos.PaymentService/
-|-- Logos.PaymentService.Domain/
-|   |-- Entities/
-|   |-- ValueObjects/          (Shared with contracts per AP-004 §7)
-|   |-- Services/
-|   `-- Abstractions/          (Capabilities - AP-005)
-`-- Logos.PaymentService.Application/
-    |-- UseCases/
-    `-- Contracts/             (References Domain ValueObjects)
+Logos.Payment.Core/
+├── Domain/
+│   ├── Entities/
+│   └── Services/
+├── SharedKernel/
+│   ├── Money/
+│   ├── Identifiers/
+│   └── Dates/
+├── Capabilities/
+│   ├── Persistence/
+│   └── ExternalServices/
+└── Application/
+    ├── UseCases/
+    └── Contracts/
 ```
 
 See the [full README](../../examples/csharp/README.md) for the complete project structure including adapters and incoming implementations
 
-The Application project references the Domain project. The Domain project has no project references to other service projects.
+As defined by AP-002, this Core is a single Unit. `Application/` may reference `Domain/`, `SharedKernel/`, and `Capabilities/`. `Domain/` and `Capabilities/` may both reference `SharedKernel/`.
 
 ---
 
 # 3. Domain Layer
 
-## 3.1 Value Objects
+## 3.1 Shared Kernel
 
-Value Objects are immutable domain concepts shared between Domain and Application (AP-004 §7).
+Shared immutable business datatypes belong in `SharedKernel/` and are reused across Domain, Capabilities, and Application.
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/ValueObjects/Money.cs`](../../examples/csharp/Logos.PaymentService.Domain/ValueObjects/Money.cs)
+**File:** `Logos.Payment.Core/SharedKernel/Money/Money.cs`
 
 The `Money` value object:
 - Represents monetary amounts with currency
@@ -73,11 +80,11 @@ The `Money` value object:
 - Provides domain operations (validation, comparison)
 - Shared between Domain logic and Application contracts
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/ValueObjects/PaymentStatus.cs`](../../examples/csharp/Logos.PaymentService.Domain/ValueObjects/PaymentStatus.cs)
+**File:** `Logos.Payment.Core/SharedKernel/PaymentStatus.cs`
 
 The `PaymentStatus` enum represents the authorization state.
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/Entities/Payment.cs`](../../examples/csharp/Logos.PaymentService.Domain/Entities/Payment.cs)
+**File:** `Logos.Payment.Core/Domain/Entities/Payment.cs`
 
 The `Payment` entity represents a payment with its state transitions.
 
@@ -85,7 +92,7 @@ The `Payment` entity represents a payment with its state transitions.
 
 Domain services contain business logic and work with entities and value objects.
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/Services/PaymentAuthorizationService.cs`](../../examples/csharp/Logos.PaymentService.Domain/Services/PaymentAuthorizationService.cs)
+**File:** `Logos.Payment.Core/Domain/Services/PaymentAuthorizationService.cs`
 
 The `PaymentAuthorizationService`:
 - Stateless service with business logic
@@ -145,11 +152,11 @@ public record PaymentAuthorizationResult(
 
 Capabilities are domain-owned abstractions that describe what the Domain requires (AP-005).
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/Abstractions/IFraudDetectionService.cs`](../../examples/csharp/Logos.PaymentService.Domain/Abstractions/IFraudDetectionService.cs)
+**File:** `Logos.Payment.Core/Capabilities/ExternalServices/IFraudDetectionService.cs`
 
 The `IFraudDetectionService` capability defines fraud detection in domain terms.
 
-**File:** [`examples/csharp/Logos.PaymentService.Domain/Abstractions/IPaymentRepository.cs`](../../examples/csharp/Logos.PaymentService.Domain/Abstractions/IPaymentRepository.cs)
+**File:** `Logos.Payment.Core/Capabilities/Persistence/IPaymentRepository.cs`
 
 The `IPaymentRepository` capability defines persistence in domain terms.
 
@@ -159,13 +166,13 @@ The `IPaymentRepository` capability defines persistence in domain terms.
 
 ## 4.1 Contract Models
 
-Contract models reference shared Value Objects from the Domain (AP-004 §7).
+Contract models reference shared business datatypes from `SharedKernel/`.
 
-**File:** [`examples/csharp/Logos.PaymentService.Application/Contracts/AuthorizePaymentContract.cs`](../../examples/csharp/Logos.PaymentService.Application/Contracts/AuthorizePaymentContract.cs)
+**File:** `Logos.Payment.Core/Application/Contracts/AuthorizePaymentContract.cs`
 
-Defines `AuthorizePaymentRequest` and `AuthorizePaymentResponse` records that reference the shared `Money` and `PaymentStatus` value objects from the domain.
+Defines `AuthorizePaymentRequest` and `AuthorizePaymentResponse` records that reference the shared `Money` and `PaymentStatus` types from `SharedKernel/`.
 
-**File:** [`examples/csharp/Logos.PaymentService.Application/Contracts/GetPaymentContract.cs`](../../examples/csharp/Logos.PaymentService.Application/Contracts/GetPaymentContract.cs)
+**File:** `Logos.Payment.Core/Application/Contracts/GetPaymentContract.cs`
 
 Defines `GetPaymentRequest` and `GetPaymentResponse` records.
 
@@ -173,7 +180,7 @@ Defines `GetPaymentRequest` and `GetPaymentResponse` records.
 
 Use cases orchestrate domain operations and manage transaction boundaries.
 
-**File:** [`examples/csharp/Logos.PaymentService.Application/UseCases/AuthorizePaymentUseCase.cs`](../../examples/csharp/Logos.PaymentService.Application/UseCases/AuthorizePaymentUseCase.cs)
+**File:** `Logos.Payment.Core/Application/UseCases/AuthorizePaymentUseCase.cs`
 
 The `AuthorizePaymentUseCase`:
 - Receives `AuthorizePaymentRequest` contract
@@ -182,7 +189,7 @@ The `AuthorizePaymentUseCase`:
 - Returns `AuthorizePaymentResponse` contract
 - **Synchronous execution** on the incoming thread
 
-**File:** [`examples/csharp/Logos.PaymentService.Application/UseCases/GetPaymentUseCase.cs`](../../examples/csharp/Logos.PaymentService.Application/UseCases/GetPaymentUseCase.cs)
+**File:** `Logos.Payment.Core/Application/UseCases/GetPaymentUseCase.cs`
 
 The `GetPaymentUseCase` retrieves payment details from the repository.
 
@@ -192,7 +199,7 @@ The `GetPaymentUseCase` retrieves payment details from the repository.
 
 Configuration happens at the composition root; adapters are registered by interface.
 
-**File:** [`examples/csharp/Logos.PaymentService.WebApi/Program.cs`](../../examples/csharp/Logos.PaymentService.WebApi/Program.cs)
+**File:** `Logos.Payment.HttpHost/Program.cs`
 
 The composition root:
 - Registers domain services with their dependencies
@@ -207,19 +214,19 @@ The composition root:
 Adapters implement domain capabilities. Their concrete implementations are outside the scope of AP-002 and will be covered in later APs on infrastructure.
 
 The key point for AP-002 is:
-- Domain defines **what** it needs (capabilities/abstractions)
-- Adapters provide **how** it's implemented (covered in later APs)
-- Composition root connects them
+- `Capabilities/` defines **what** the Core needs
+- Shared business datatypes live in `SharedKernel/`
+- Host and infrastructure examples are covered in later APs
 
 ---
 
 # 7. Key Points
 
-1. **The Domain has no external dependencies**: `Logos.PaymentService.Domain` references no other service projects.
+1. **The Core has no external dependencies**: `Logos.Payment.Core` references no Host Units.
 
-2. **The Application references only the Domain**: `Logos.PaymentService.Application` references only `Logos.PaymentService.Domain`.
+2. **`Application/` depends inward**: it references only `Domain/`, `SharedKernel/`, and `Capabilities/` within the Core.
 
-3. **Value Objects are shared** (AP-004 §7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
+3. **Shared business datatypes are centralized**: `Money`, `PaymentStatus`, and similar types are defined once in `SharedKernel/` and reused across the Core.
 
 4. **Domain Services are stateless**: `PaymentAuthorizationService` performs business logic on Value Objects without managing state.
 

@@ -1,5 +1,7 @@
 # AP-002 Implementation Guide: C++
 
+# AP-002 Implementation Guide: C++
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-002, AP-004  
@@ -10,7 +12,7 @@
 
 This document demonstrates a concrete implementation of the service structure defined in AP-002 using C++.
 
-It shows how to structure a service using the Domain and Application units, how to define shared Value Objects (per AP-004 §7), and how Domain Services perform business logic while state is managed externally.
+It shows how to structure a service using the AP-002 Core model with `domain/`, `shared_kernel/`, `capabilities/`, and `application/`, and how Domain Services perform business logic while state is managed externally.
 
 This example uses a simplified payment authorization service to illustrate the concepts.
 
@@ -36,7 +38,7 @@ This example uses a simplified payment authorization service to illustrate the c
 
 - **Stateless Domain Services**: Business logic operates on Value Objects without entity classes
 - **External State Management**: Identity and state persistence handled by the repository (database)
-- **Shared Value Objects**: Value Objects defined once in Domain, referenced by Application contracts (AP-004 §7)
+- **Shared Kernel**: Shared immutable business datatypes defined once in `shared_kernel/`, referenced across the Core
 - **Template-Based Service Container**: Type-safe dependency injection using templates
 - **Synchronous Request-Response**: Thread starts with an event (request), executes business logic, persists state, and ends with a message (response). No futures/async in domain/application layers; threads are short-lived.
 - **Explicit Ownership**: Uses C++ Core Guidelines for ownership semantics:
@@ -50,45 +52,47 @@ This example uses a simplified payment authorization service to illustrate the c
 
 # 2. Project Structure
 
-The compilable example is organized into the following libraries and executable:
+The example structure aligned to AP-002 is organized into the following libraries and executable:
 
 **Location:** [`examples/cpp/`](../../examples/cpp/)
 
 ```
-logos_payment_service/
-├── logos_payment_service_domain/
-│   ├── value_objects/         (Shared with contracts per AP-004 §7)
-│   ├── services/
-│   └── abstractions/          (Capabilities)
-├── logos_payment_service_application/
-│   ├── use_cases/
-│   ├── contracts/             (References Domain ValueObjects)
-│   └── container/             (Service container for DI)
-├── logos_payment_service_adapters/
-│   └── (Infrastructure implementations)
-└── logos_payment_service_cli/
-    └── (CLI entry point)
+logos_payment_core/
+├── domain/
+│   ├── entities/
+│   └── services/
+├── shared_kernel/
+│   ├── money/
+│   ├── identifiers/
+│   └── dates/
+├── capabilities/
+│   ├── persistence/
+│   └── external_services/
+└── application/
+    ├── use_cases/
+    ├── contracts/
+    └── container/
 ```
 
 See the [full README](../../examples/cpp/README.md) for complete project structure, build instructions, and usage examples.
 
 **Build Configuration:** [`examples/cpp/CMakeLists.txt`](../../examples/cpp/CMakeLists.txt)
 
-The Domain library has no external dependencies. The Application library depends only on Domain. Adapters implement Domain abstractions.
+The Core library has no Host dependencies. Within the Core, `application/` may depend on `domain/`, `shared_kernel/`, and `capabilities/`, while `domain/` and `capabilities/` may both depend on `shared_kernel/`.
 
 ---
 
 # 3. Domain Layer
 
-## 3.1 Value Objects
+## 3.1 Shared Kernel
 
-Value Objects are immutable domain concepts shared between Domain and Application (AP-004 §7).
+Shared immutable business datatypes belong in `shared_kernel/` and are reused across the Core.
 
 ### Money Value Object
 
-**File:** [`examples/cpp/logos_payment_service_domain/value_objects/money.h`](../../examples/cpp/logos_payment_service_domain/value_objects/money.h)
+**File:** `logos_payment_core/shared_kernel/money/money.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_domain/value_objects/money.cpp`](../../examples/cpp/logos_payment_service_domain/value_objects/money.cpp)
+**Implementation:** `logos_payment_core/shared_kernel/money/money.cpp`
 
 The `Money` value object:
 - Stores amounts as integer cents (int64_t) to avoid floating-point precision issues
@@ -103,13 +107,13 @@ See: [Money Implementation Details](../../examples/cpp/MONEY_IMPLEMENTATION.md) 
 
 ### Payment Status
 
-**File:** [`examples/cpp/logos_payment_service_domain/value_objects/payment_status.h`](../../examples/cpp/logos_payment_service_domain/value_objects/payment_status.h)
+**File:** `logos_payment_core/shared_kernel/payment_status.h`
 
 The `PaymentStatus` enum represents the authorization state (Pending, Authorized, Declined).
 
 ### Payment Record
 
-**File:** [`examples/cpp/logos_payment_service_domain/value_objects/payment_record.h`](../../examples/cpp/logos_payment_service_domain/value_objects/payment_record.h)
+**File:** `logos_payment_core/shared_kernel/payment_record.h`
 
 The `PaymentRecord` struct represents a complete payment record with identity assigned by the repository.
 
@@ -117,9 +121,9 @@ The `PaymentRecord` struct represents a complete payment record with identity as
 
 Domain services contain business logic and work with Value Objects. They are stateless.
 
-**File:** [`examples/cpp/logos_payment_service_domain/services/payment_authorization_service.h`](../../examples/cpp/logos_payment_service_domain/services/payment_authorization_service.h)
+**File:** `logos_payment_core/domain/services/payment_authorization_service.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_domain/services/payment_authorization_service.cpp`](../../examples/cpp/logos_payment_service_domain/services/payment_authorization_service.cpp)
+**Implementation:** `logos_payment_core/domain/services/payment_authorization_service.cpp`
 
 The `PaymentAuthorizationService`:
 - Stateless service that performs payment authorization business logic
@@ -135,7 +139,7 @@ Capabilities are domain-owned abstractions that describe what the Domain require
 
 ### Fraud Detection Capability
 
-**File:** [`examples/cpp/logos_payment_service_domain/abstractions/fraud_detection_service.h`](../../examples/cpp/logos_payment_service_domain/abstractions/fraud_detection_service.h)
+**File:** `logos_payment_core/capabilities/external_services/fraud_detection_service.h`
 
 The `IFraudDetectionService` interface:
 - Abstract interface owned by the Domain
@@ -144,7 +148,7 @@ The `IFraudDetectionService` interface:
 
 ### Payment Repository Capability
 
-**File:** [`examples/cpp/logos_payment_service_domain/abstractions/payment_repository.h`](../../examples/cpp/logos_payment_service_domain/abstractions/payment_repository.h)
+**File:** `logos_payment_core/capabilities/persistence/payment_repository.h`
 
 The `IPaymentRepository` interface:
 - Defines persistence operations in domain terms
@@ -157,19 +161,19 @@ The `IPaymentRepository` interface:
 
 ## 4.1 Contract Models
 
-Contract models reference shared Value Objects from the Domain (AP-004 §7).
+Contract models reference shared business datatypes from `shared_kernel/`.
 
-**Authorize Payment Request:** [`examples/cpp/logos_payment_service_application/contracts/authorize_payment_request.h`](../../examples/cpp/logos_payment_service_application/contracts/authorize_payment_request.h)
+**Authorize Payment Request:** `logos_payment_core/application/contracts/authorize_payment_request.h`
 
-**Authorize Payment Response:** [`examples/cpp/logos_payment_service_application/contracts/authorize_payment_response.h`](../../examples/cpp/logos_payment_service_application/contracts/authorize_payment_response.h)
+**Authorize Payment Response:** `logos_payment_core/application/contracts/authorize_payment_response.h`
 
-**Get Payment Response:** [`examples/cpp/logos_payment_service_application/contracts/get_payment_response.h`](../../examples/cpp/logos_payment_service_application/contracts/get_payment_response.h)
+**Get Payment Response:** `logos_payment_core/application/contracts/get_payment_response.h`
 
 Contract models reference `Money` and other Value Objects directly from the Domain - no duplication.
 
 ## 4.2 Service Container (Dependency Injection)
 
-**File:** [`examples/cpp/logos_payment_service_application/container/service_container.h`](../../examples/cpp/logos_payment_service_application/container/service_container.h)
+**File:** `logos_payment_core/application/container/service_container.h`
 
 A simple template-based service container that:
 - Owns service instances with `unique_ptr`
@@ -183,9 +187,9 @@ Use cases receive their dependencies through constructor injection.
 
 ### Authorize Payment Use Case
 
-**File:** [`examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.h`](../../examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.h)
+**File:** `logos_payment_core/application/use_cases/authorize_payment_use_case.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.cpp`](../../examples/cpp/logos_payment_service_application/use_cases/authorize_payment_use_case.cpp)
+**Implementation:** `logos_payment_core/application/use_cases/authorize_payment_use_case.cpp`
 
 The `AuthorizePaymentUseCase`:
 - Orchestrates payment authorization workflow
@@ -195,9 +199,9 @@ The `AuthorizePaymentUseCase`:
 
 ### Get Payment Use Case
 
-**File:** [`examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.h`](../../examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.h)
+**File:** `logos_payment_core/application/use_cases/get_payment_use_case.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.cpp`](../../examples/cpp/logos_payment_service_application/use_cases/get_payment_use_case.cpp)
+**Implementation:** `logos_payment_core/application/use_cases/get_payment_use_case.cpp`
 
 Simple retrieval use case that queries the repository.
 
@@ -207,7 +211,7 @@ Simple retrieval use case that queries the repository.
 
 Configuration is loaded and services are registered in a container.
 
-**File:** [`examples/cpp/logos_payment_service_cli/main.cpp`](../../examples/cpp/logos_payment_service_cli/main.cpp)
+**File:** `logos_payment_cli_host/main.cpp`
 
 The composition root:
 - Creates the service container
@@ -222,24 +226,20 @@ The composition root:
 
 Adapters implement domain capabilities.
 
-**In-Memory Repository:** [`examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.h`](../../examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.h) and [`.cpp`](../../examples/cpp/logos_payment_service_adapters/in_memory_payment_repository.cpp)
-
-**Simple Fraud Detection:** [`examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.h`](../../examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.h) and [`.cpp`](../../examples/cpp/logos_payment_service_adapters/simple_fraud_detection_service.cpp)
-
 The key point for AP-002 is:
-- Domain defines **what** it needs (capabilities/abstractions)
-- Adapters provide **how** it's implemented
-- Service container connects them
+- `capabilities/` defines **what** the Core needs
+- `shared_kernel/` holds shared business datatypes
+- host and infrastructure examples are covered by later APs
 
 ---
 
 # 7. Key Points
 
-1. **The Domain has no external dependencies**: `logos_payment_service_domain` links against no other service targets.
+1. **The Core has no Host dependencies**: `logos_payment_core` links against no Host targets.
 
-2. **The Application depends only on the Domain**: `logos_payment_service_application` links only against `logos_payment_service_domain`.
+2. **`application/` depends inward**: it references only `domain/`, `shared_kernel/`, and `capabilities/`.
 
-3. **Value Objects are shared** (AP-004 §7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
+3. **Shared business datatypes are centralized**: `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in `shared_kernel/` and reused across the Core.
 
 4. **Domain Services are stateless**: `PaymentAuthorizationService` performs business logic on Value Objects without managing state.
 

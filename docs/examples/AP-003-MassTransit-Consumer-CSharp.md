@@ -1,5 +1,7 @@
 # AP-003 Implementation Guide: MassTransit Consumer - C#
 
+# AP-003 Implementation Guide: MassTransit Consumer - C#
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
@@ -13,7 +15,7 @@ This example demonstrates how to add a MassTransit consumer (message handler) th
 
 > **?? Compilable Example Available**  
 > A fully compilable version of this example is available at:  
-> [`examples/csharp/Logos.PaymentService.Messaging/`](../../examples/csharp/)  
+> `Logos.Payment.MasstransitHost/`  
 >
 > The consumer implementation is ready to use. See the [README](../../examples/csharp/README.md) for integration instructions.
 
@@ -30,21 +32,24 @@ This example demonstrates how to add a MassTransit consumer (message handler) th
 
 ## 2. Project Structure
 
-**Location:** [`examples/csharp/Logos.PaymentService.Worker/`](../../examples/csharp/Logos.PaymentService.Worker/)
+**Location:** `Logos.Payment.MasstransitHost/`
 
-The Worker is a **standalone application** (Worker Service) that shows how technology is initialized close to the adapter:
+The Host Unit is a standalone application that shows how technology is initialized close to the incoming implementation:
 
 ```
-Logos.PaymentService.Worker/
-|-- Program.cs                    # Composition root - MassTransit initialized here
-|-- appsettings.json
-`-- README.md
+Logos.Payment.MasstransitHost/
+|-- Consumers/
+|   `-- AuthorizePaymentConsumer.cs
+|-- Mappings/
+|   `-- AuthorizePaymentMessageMapping.cs
+|-- Configuration/
+|   `-- ServiceConfiguration.cs
+|-- Program.cs
+`-- appsettings.json
 ```
 
-The Worker depends on:
-- `Logos.PaymentService.Application` - Use cases
-- `Logos.PaymentService.Adapters` - Repository implementations  
-- `Logos.PaymentService.Messaging` - Consumer and message definitions
+The Host depends on:
+- `Logos.Payment.Core` - Use cases and contracts
 - `MassTransit` + `MassTransit.RabbitMQ` - Messaging technology
 
 **Key Point:** Technology (MassTransit, RabbitMQ) is initialized in `Program.cs`, close to where it's used, NOT in the domain or application layers.
@@ -55,7 +60,7 @@ The Worker depends on:
 
 ### 3.1 Command Message
 
-**File:** [`AuthorizePaymentCommand.cs`](../../examples/csharp/Logos.PaymentService.Messaging/Messages/AuthorizePaymentCommand.cs)
+**File:** `Logos.Payment.MasstransitHost/Mappings/AuthorizePaymentCommand.cs`
 
 The command message:
 - Represents the incoming message from the broker
@@ -65,7 +70,7 @@ The command message:
 
 ### 3.2 Event Message
 
-**File:** [`PaymentAuthorizedEvent.cs`](../../examples/csharp/Logos.PaymentService.Messaging/Messages/PaymentAuthorizedEvent.cs)
+**File:** `Logos.Payment.MasstransitHost/Mappings/PaymentAuthorizedEvent.cs`
 
 The event message:
 - Published after payment authorization completes
@@ -76,7 +81,7 @@ The event message:
 
 ## 4. Consumer Implementation
 
-**File:** [`AuthorizePaymentConsumer.cs`](../../examples/csharp/Logos.PaymentService.Messaging/Consumers/AuthorizePaymentConsumer.cs)
+**File:** `Logos.Payment.MasstransitHost/Consumers/AuthorizePaymentConsumer.cs`
 
 The consumer:
 - Implements `IConsumer<AuthorizePaymentCommand>`
@@ -101,7 +106,7 @@ The consumer:
 
 ### 5.1 Translation Responsibility
 
-- **Consumers are adapters** (AP-007) - they translate between message formats and domain contracts
+- **Consumers are transport endpoints** - they receive messages and invoke use cases
 - Message schemas are external contracts
 - Domain contracts are internal
 - Flow: `external message -> domain contract -> use case -> event`
@@ -130,8 +135,8 @@ The consumer:
 
 ### 5.5 Technology Placement
 
-- MassTransit configuration belongs in the adapter/infrastructure layer
-- Consumers are **incoming adapters** (AP-003)
+- MassTransit configuration belongs in the Host Unit's `Configuration/` folder
+- Consumers are **incoming transport endpoints** (AP-003)
 - Message definitions are transport contracts, not domain contracts
 - Use cases remain independent of messaging technology
 

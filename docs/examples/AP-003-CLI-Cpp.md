@@ -1,5 +1,7 @@
 # CLI Application Example: C++
 
+# CLI Application Example: C++
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
@@ -34,19 +36,20 @@ This example demonstrates a command-line interface (CLI) that invokes use cases 
 
 ## 2. Project Structure
 
-**Location:** [`examples/cpp/logos_payment_service_cli/`](../../examples/cpp/logos_payment_service_cli/)
+**Location:** `logos_payment_cli_host/`
 
 ```
-logos_payment_service/
-??? logos_payment_service_domain/           (From AP-002 example)
-??? logos_payment_service_application/      (From AP-002 example)
-??? logos_payment_service_adapters/         (Adapters - AP-007)
-??? logos_payment_service_cli/              (CLI entry point)
-    ??? commands/
-    ?   ??? authorize_command.h/.cpp
-    ?   ??? get_payment_command.h/.cpp
-    ??? cli_parser.h/.cpp
-    ??? main.cpp
+logos_payment_core/                    (From AP-002 example)
+logos_payment_cli_host/
+??? commands/
+?   ??? authorize_command.h/.cpp
+?   ??? get_payment_command.h/.cpp
+??? mappings/
+?   ??? cli_argument_mapping.h/.cpp
+??? configuration/
+?   ??? cli_configuration.h/.cpp
+??? cli_parser.h/.cpp
+??? main.cpp
 ```
 
 ---
@@ -55,9 +58,9 @@ logos_payment_service/
 
 The CLI parser extracts commands, options, flags, and positional arguments from the command line.
 
-**Header:** [`examples/cpp/logos_payment_service_cli/cli_parser.h`](../../examples/cpp/logos_payment_service_cli/cli_parser.h)
+**Header:** `logos_payment_cli_host/cli_parser.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_cli/cli_parser.cpp`](../../examples/cpp/logos_payment_service_cli/cli_parser.cpp)
+**Implementation:** `logos_payment_cli_host/cli_parser.cpp`
 
 The `CliParser` class:
 - Extracts command name (first argument)
@@ -72,9 +75,9 @@ The `CliParser` class:
 
 The authorize command handles payment authorization requests.
 
-**Header:** [`examples/cpp/logos_payment_service_cli/commands/authorize_command.h`](../../examples/cpp/logos_payment_service_cli/commands/authorize_command.h)
+**Header:** `logos_payment_cli_host/commands/authorize_command.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_cli/commands/authorize_command.cpp`](../../examples/cpp/logos_payment_service_cli/commands/authorize_command.cpp)
+**Implementation:** `logos_payment_cli_host/commands/authorize_command.cpp`
 
 The `AuthorizeCommand` class:
 - Parses CLI arguments (amount, currency, merchant)
@@ -105,9 +108,9 @@ Amount:         100.00 USD
 
 The get payment command retrieves payment details by ID.
 
-**Header:** [`examples/cpp/logos_payment_service_cli/commands/get_payment_command.h`](../../examples/cpp/logos_payment_service_cli/commands/get_payment_command.h)
+**Header:** `logos_payment_cli_host/commands/get_payment_command.h`
 
-**Implementation:** [`examples/cpp/logos_payment_service_cli/commands/get_payment_command.cpp`](../../examples/cpp/logos_payment_service_cli/commands/get_payment_command.cpp)
+**Implementation:** `logos_payment_cli_host/commands/get_payment_command.cpp`
 
 The `GetPaymentCommand` class:
 - Extracts payment ID from positional argument
@@ -138,12 +141,12 @@ Created At:     2024-12-07 10:30:45
 
 The main function wires everything together.
 
-**File:** [`examples/cpp/logos_payment_service_cli/main.cpp`](../../examples/cpp/logos_payment_service_cli/main.cpp)
+**File:** `logos_payment_cli_host/main.cpp`
 
 The composition root:
 1. **Parses command line** using `CliParser`
-2. **Creates service container** for dependency injection
-3. **Registers adapters** (in-memory repository, fraud detection)
+2. **Loads configuration**
+3. **Creates service container** for dependency injection
 4. **Registers domain services** with configuration
 5. **Creates use cases** with resolved dependencies
 6. **Routes to command handlers** based on command name

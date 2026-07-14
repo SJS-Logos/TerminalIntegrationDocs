@@ -28,7 +28,7 @@ Build succeeded
 
 ### 3. Run the API
 ```bash
-cd Logos.PaymentService.WebApi
+cd Logos.Payment.HttpHost
 dotnet run
 ```
 
@@ -114,54 +114,61 @@ PaymentAuthorizationService (Domain)
 - `GetPaymentUseCase` - retrieves payment details
 - Contract models (Request/Response records)
 
-**Adapters** (Technology Translation)
+**Infrastructure** (Technology Translation)
 - `InMemoryPaymentRepository` - stores payments in memory
 - `SimpleFraudDetectionService` - simple fraud check (>$5000)
 
-**WebApi** (HTTP Incoming)
+**HttpHost** (HTTP Incoming)
 - `PaymentsController` - exposes HTTP endpoints
 - DTO mapping between HTTP and domain contracts
 
 ## Project Structure
 
 ```
-Logos.PaymentService.sln
+Logos.Payment.sln
 |
-|-- Domain/                        # Zero dependencies
-|   |-- Entities/
-|   |   `-- Payment.cs
-|   |-- ValueObjects/
+|-- Logos.Payment.Core/                    # No Host dependencies
+|   |-- Domain/
+|   |   |-- Entities/
+|   |   |   `-- Payment.cs
+|   |   `-- Services/
+|   |       `-- PaymentAuthorizationService.cs
+|   |-- SharedKernel/
 |   |   |-- Money.cs
 |   |   `-- PaymentStatus.cs
-|   |-- Abstractions/
+|   |-- Capabilities/
 |   |   |-- IPaymentRepository.cs
 |   |   `-- IFraudDetectionService.cs
-|   `-- Services/
-|       `-- PaymentAuthorizationService.cs
+|   `-- Application/
+|       |-- Contracts/
+|       |   |-- AuthorizePaymentContract.cs
+|       |   `-- GetPaymentContract.cs
+|       `-- UseCases/
+|           |-- AuthorizePaymentUseCase.cs
+|           `-- GetPaymentUseCase.cs
 |
-|-- Application/                   # Depends on: Domain
-|   |-- Contracts/
-|   |   |-- AuthorizePaymentContract.cs
-|   |   `-- GetPaymentContract.cs
-|   `-- UseCases/
-|       |-- AuthorizePaymentUseCase.cs
-|       `-- GetPaymentUseCase.cs
-|
-|-- Adapters/                      # Depends on: Domain
+|-- Logos.Payment.Infrastructure.InMemory/ # Depends on: Core
 |   |-- InMemoryPaymentRepository.cs
 |   `-- SimpleFraudDetectionService.cs
 |
-|-- WebApi/                        # Depends on: Application, Adapters
+|-- Logos.Payment.HttpHost/                # Depends on: Core, Infrastructure
 |   |-- Controllers/
 |   |   `-- PaymentsController.cs
+|   |-- Mappings/
+|   |   `-- PaymentDtos.cs
+|   |-- Configuration/
+|   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-`-- Messaging/                     # Depends on: Application
+`-- Logos.Payment.MasstransitHost/         # Depends on: Core, Infrastructure
     |-- Messages/
     |   |-- AuthorizePaymentCommand.cs
     |   `-- PaymentAuthorizedEvent.cs
-    `-- Consumers/
-        `-- AuthorizePaymentConsumer.cs
+    |-- Consumers/
+    |   `-- AuthorizePaymentConsumer.cs
+    |-- Configuration/
+    |   `-- ServiceConfiguration.cs
+    `-- Program.cs
 ```
 
 ## Key Patterns Demonstrated
@@ -243,7 +250,7 @@ public AuthorizePaymentResponse Execute(AuthorizePaymentRequest request)
 ```
 
 ### Finally HTTP Layer
-Open `WebApi/Controllers/PaymentsController.cs` to see HTTP translation:
+Open `HttpHost/Controllers/PaymentsController.cs` to see HTTP translation:
 ```csharp
 [HttpPost("authorize")]
 public IActionResult AuthorizePayment([FromBody] AuthorizePaymentDto request)
@@ -258,16 +265,16 @@ public IActionResult AuthorizePayment([FromBody] AuthorizePaymentDto request)
 
 ### Modify the Code
 Try changing the fraud detection threshold:
-1. Open `Adapters/SimpleFraudDetectionService.cs`
+1. Open `Logos.Payment.Infrastructure.InMemory/SimpleFraudDetectionService.cs`
 2. Change `amount.GetAmount() > 5000m` to `> 1000m`
 3. Rebuild: `dotnet build`
 4. Test with different amounts
 
 ### Add a New Use Case
 Follow the pattern:
-1. Define contracts in `Application/Contracts/`
-2. Implement use case in `Application/UseCases/`
-3. Add controller endpoint in `WebApi/Controllers/`
+1. Define contracts in `Core/Application/Contracts/`
+2. Implement use case in `Core/Application/UseCases/`
+3. Add controller endpoint in `HttpHost/Controllers/`
 4. Test via Swagger
 
 ### Run Tests (Coming Soon)
@@ -285,7 +292,7 @@ dotnet build
 ```
 
 ### Port Already in Use
-Edit `WebApi/appsettings.json` or run:
+Edit `HttpHost/appsettings.json` or run:
 ```bash
 dotnet run --urls "http://localhost:5002"
 ```

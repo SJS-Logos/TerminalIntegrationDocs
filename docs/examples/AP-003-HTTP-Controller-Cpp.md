@@ -1,5 +1,7 @@
 # HTTP Controller Example: C++
 
+# HTTP Controller Example: C++
+
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
@@ -28,28 +30,22 @@ This example demonstrates how to add an HTTP controller using Qt's HTTP server t
 ## 2. Project Structure
 
 ```
-logos_payment_service/
-├── logos_payment_service_domain/           (From AP-002 example)
-│   ├── value_objects/
-│   ├── services/
-│   ├── abstractions/
-├── logos_payment_service_application/      (From AP-002 example)
-│   ├── use_cases/
-│   ├── contracts/
-│   ├── container/
-├── logos_payment_service_adapters/         (Adapters - AP-007)
-│   ├── sqlite_payment_repository.h/cpp
-│   ├── fraud_detection_service.h/cpp
-├── logos_payment_service_http/            (New - HTTP incoming)
-    ├── controllers/
-    │   ├── payments_controller.h
-    │   ├── payments_controller.cpp
-    ├── models/                               (HTTP DTOs)
-    │   ├── payment_dto.h
-    │   ├── payment_dto.cpp
-    ├── http_server.h
-    ├── http_server.cpp
-    ├── main.cpp
+logos_payment_core/                     (From AP-002 example)
+├── domain/
+├── shared_kernel/
+├── capabilities/
+└── application/
+logos_payment_http_host/                (HTTP incoming)
+├── controllers/
+│   ├── payments_controller.h
+│   ├── payments_controller.cpp
+├── mappings/
+│   ├── payment_dto.h
+│   ├── payment_dto.cpp
+├── configuration/
+│   ├── http_server.h
+│   └── http_server.cpp
+└── main.cpp
 ```
 
 ---
@@ -59,7 +55,7 @@ logos_payment_service/
 ### 3.1 Payment DTOs
 
 ```cpp
-// logos_payment_service_http/models/payment_dto.h
+// logos_payment_http_host/mappings/payment_dto.h
 #pragma once
 
 #include <QJsonObject>
@@ -67,7 +63,7 @@ logos_payment_service/
 #include <QDateTime>
 #include <optional>
 
-namespace logos::payment_service::http::models {
+namespace logos::payment::http_host::mappings {
 
 /// @brief HTTP request for payment authorization
 /// @details Maps to application::contracts::AuthorizePaymentRequest
@@ -123,11 +119,11 @@ struct PaymentDetailsDto {
 ### 3.2 DTO Implementation
 
 ```cpp
-// logos_payment_service_http/models/payment_dto.cpp
+// logos_payment_http_host/mappings/payment_dto.cpp
 #include "payment_dto.h"
 #include <QJsonValue>
 
-namespace logos::payment_service::http::models {
+namespace logos::payment::http_host::mappings {
 
 std::optional<AuthorizePaymentDto> AuthorizePaymentDto::FromJson(const QJsonObject& json) {
     if (!json.contains("amount") || !json.contains("currency") || !json.contains("merchantId")) {
@@ -191,7 +187,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 ### 4.1 Controller Header
 
 ```cpp
-// logos_payment_service_http/controllers/payments_controller.h
+// logos_payment_http_host/controllers/payments_controller.h
 #pragma once
 
 #include <QHttpServerRequest>
@@ -200,7 +196,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 #include "application/use_cases/authorize_payment_use_case.h"
 #include "application/use_cases/get_payment_use_case.h"
 
-namespace logos::payment_service::http::controllers {
+namespace logos::payment::http_host::controllers {
 
 /// @brief HTTP controller for payment operations
 /// @details Handles HTTP requests for payment authorization and retrieval.
