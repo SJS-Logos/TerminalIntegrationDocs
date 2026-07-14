@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Logos.Payment.CliHost;
 using Logos.Payment.CliHost.Commands;
 using Logos.Payment.CliHost.Configuration;
+using Logos.Payment.Core.Application.Contracts;
 using Logos.Payment.Core.Application.UseCases;
 
 // Parse command-line arguments
@@ -55,8 +56,29 @@ static void PrintHelp()
     Console.WriteLine("Payment Service CLI\n");
     Console.WriteLine("Usage: payment-cli <command> [options]\n");
     Console.WriteLine("Commands:");
+
+    // Authorize command - documentation from AuthorizePaymentRequest
     Console.WriteLine("  authorize    Authorize a new payment");
+    var authSummary = XmlDocReader.GetTypeSummary<AuthorizePaymentRequest>();
+    if (!string.IsNullOrEmpty(authSummary))
+        Console.WriteLine($"               {authSummary}");
+    Console.WriteLine("               Parameters:");
+    var amountDoc = XmlDocReader.GetParameterSummary<AuthorizePaymentRequest>("Amount");
+    var merchantDoc = XmlDocReader.GetParameterSummary<AuthorizePaymentRequest>("MerchantId");
+    Console.WriteLine($"                 --amount      {amountDoc ?? "The payment amount"}");
+    Console.WriteLine($"                 --merchant-id {merchantDoc ?? "The merchant identifier"}");
+    Console.WriteLine();
+
+    // Get command - documentation from GetPaymentRequest
     Console.WriteLine("  get          Retrieve payment details by ID");
+    var getSummary = XmlDocReader.GetTypeSummary<GetPaymentRequest>();
+    if (!string.IsNullOrEmpty(getSummary))
+        Console.WriteLine($"               {getSummary}");
+    Console.WriteLine("               Parameters:");
+    var paymentIdDoc = XmlDocReader.GetParameterSummary<GetPaymentRequest>("PaymentId");
+    Console.WriteLine($"                 --payment-id  {paymentIdDoc ?? "The payment identifier"}");
+    Console.WriteLine();
+
     Console.WriteLine("  help         Show this help message\n");
     Console.WriteLine("Use 'payment-cli <command> --help' for more information about a command.\n");
 }
