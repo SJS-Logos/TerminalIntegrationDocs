@@ -1,8 +1,12 @@
-# Money Value Object - Implementation Notes
+﻿# Money Value Object - Implementation Notes
 
-## Why Integer Cents Instead of Floating-Point?
+> **Note on Danish Currency Formatting**: This document uses Danish conventions where:
+> - The minor unit for DKK (Danish Krone) is **øre** (1 DKK = 100 øre)
+> - Currency code appears **before** the amount: "DKK 10,50" (not "10,50 DKK")
 
-The `Money` value object in this C++ implementation uses **integer cents** (int64_t) instead of floating-point (double or float) to represent monetary amounts. This is a critical design decision for financial applications.
+## Why Integer Minor Units Instead of Floating-Point?
+
+The `Money` value object in this C++ implementation uses **integer minor units** (int64_t) instead of floating-point (double or float) to represent monetary amounts. This is a critical design decision for financial applications.
 
 ## The Problem with Floating-Point
 
@@ -33,17 +37,17 @@ for (int i = 0; i < 1000; i++) {
     account_balance -= transaction;  // Accumulates rounding errors
 }
 // Expected: 900.00
-// Actual:   899.9999999999636 (off by ~36 cents after 1000 transactions!)
+// Actual:   899.9999999999636 (off by ~0.36 DKK after 1000 transactions!)
 ```
 
-## Our Solution: Integer Cents
+## Our Solution: Integer Minor Units
 
-The `Money` class stores amounts as **integer cents** (smallest currency unit):
+The `Money` class stores amounts as **integer minor units** (smallest currency unit):
 
 ```cpp
 class Money {
 private:
-    int64_t cents_;      // Amount in cents (e.g., 1050 for $10.50)
+    int64_t minor_units_;      // Amount in minor units (e.g., 1050 øre for DKK 10,50)
     std::string currency_;
 };
 ```
@@ -54,7 +58,7 @@ private:
 2. **No Rounding Errors**: Addition, subtraction, and comparison are precise
 3. **Predictable**: Same results on all platforms and compilers
 4. **Performance**: Integer operations are typically faster than floating-point
-5. **Large Range**: int64_t supports �$92,233,720,368,547.75 (�2^63 cents)
+5. **Large Range**: int64_t supports ±92,233,720,368,547.75 DKK (±2^63 minor units)
 
 ## Usage Examples
 
@@ -62,44 +66,44 @@ private:
 
 ```cpp
 // From string (flexible - accepts "10.50" or "10,50")
-Money price("10.50", "USD");  // Internally stored as 1050 cents
+Money price("10.50", "DKK");  // Internally stored as 1050 øre
 
-// From cents directly (preferred for precision)
-Money precise = Money::FromCents(1050, "USD");  // Exact: 1050 cents
+// From minor units directly (preferred for precision)
+Money precise = Money::FromMinorUnits(1050, "DKK");  // Exact: 1050 øre
 
 // Zero amount
-Money empty = Money::Zero("USD");  // 0 cents
+Money empty = Money::Zero("DKK");  // 0 øre
 ```
 
 ### Formatting for Display
 
 ```cpp
-Money amount = Money::FromCents(123456789, "USD");  // $1,234,567.89
+Money amount = Money::FromMinorUnits(123456789, "DKK");  // DKK 1.234.567,89
 
-// Default US format: period decimal, comma thousands, with currency
-std::string us = amount.ToString();
-// Output: "1,234,567.89 USD"
+// Danish format: comma decimal, period thousands, currency prefix
+std::string dk = amount.ToString(',', '.', true);
+// Output: "DKK 1.234.567,89"
 
-// European format: comma decimal, period thousands
-std::string eu = amount.ToString(',', '.', true);
-// Output: "1.234.567,89 USD"
+// Alternative: period decimal, comma thousands
+std::string alt = amount.ToString('.', ',', true);
+// Output: "DKK 1,234,567.89"
 
 // Swiss format: period decimal, apostrophe thousands
 std::string ch = amount.ToString('.', '\'', true);
-// Output: "1'234'567.89 USD"
+// Output: "DKK 1'234'567.89"
 
 // Without currency code
-std::string no_curr = amount.ToString('.', ',', false);
-// Output: "1,234,567.89"
+std::string no_curr = amount.ToString(',', '.', false);
+// Output: "1.234.567,89"
 ```
 
 ### Operations
 
 ```cpp
-Money item1(10.50, "USD");    // 1050 cents
-Money item2(5.25, "USD");     // 525 cents
+Money item1("10.50", "DKK");    // 1050 øre
+Money item2("5.25", "DKK");     // 525 øre
 
-Money total = item1.Add(item2);  // 1575 cents = $15.75 (exact!)
+Money total = item1.Add(item2);  // 1575 øre = DKK 15,75 (exact!)
 
 bool positive = item1.IsPositive();      // true
 bool greater = item1.IsGreaterThan(item2);  // true
@@ -108,33 +112,33 @@ bool greater = item1.IsGreaterThan(item2);  // true
 ### Accessing Values
 
 ```cpp
-Money amount("10.50", "USD");
+Money amount("10.50", "DKK");
 
-// For calculations: use cents (exact)
-int64_t cents = amount.GetCents();      // 1050
-int64_t doubled = cents * 2;             // 2100 (exact)
-Money result = Money::FromCents(doubled, "USD");  // $21.00
+// For calculations: use minor units/øre (exact)
+int64_t ore = amount.GetMinorUnits();      // 1050 øre
+int64_t doubled = ore * 2;                  // 2100 øre (exact)
+Money result = Money::FromMinorUnits(doubled, "DKK");  // DKK 21,00
 
 // For display: use ToString() with proper formatting
-std::string display = amount.ToString();     // "10.50 USD"
-std::cout << display << "\n";                // Output: 10.50 USD
+std::string display = amount.ToString(',', '.', true);     // "DKK 10,50"
+std::cout << display << "\n";                              // Output: DKK 10,50
 
-// International display
-std::string euro_fmt = amount.ToString(',', '.', true);  // "10,50 USD"
+// Alternative format
+std::string alt_fmt = amount.ToString('.', ',', true);  // "DKK 10.50"
 ```
 
 ### Internal Storage
 
 ```cpp
-// When you create Money("10.50", "USD"), internally:
+// When you create Money("10.50", "DKK"), internally:
 Money::Money(const std::string& amount_str, const std::string& currency) {
-    // Parses "10.50" -> 1050 cents
-    // Also handles "10,50" (European format) -> 1050 cents
+    // Parses "10.50" -> 1050 øre
+    // Also handles "10,50" (Danish format) -> 1050 øre
 }
 
 // When you call ToString(), it formats back:
 std::string ToString(char decimal_sep, char thousands_sep, bool show_currency) {
-    // 1050 cents -> "10.50 USD" (or "10,50 USD" for European)
+    // 1050 øre -> "DKK 10,50" (Danish) or "DKK 10.50" (alternative)
 }
 ```
 
@@ -143,21 +147,21 @@ std::string ToString(char decimal_sep, char thousands_sep, bool show_currency) {
 ### Approach 1: Double (AVOID)
 ```cpp
 ? double amount = 10.50;
-   std::cout << amount << " USD\n";  // No formatting, no precision
+   std::cout << amount << " DKK\n";  // No formatting, no precision
    // Issues: Precision errors, rounding issues, inconsistent results, no formatting
 ```
 
-### Approach 2: Integer Cents with ToString() (OUR CHOICE)
+### Approach 2: Integer Minor Units with ToString() (OUR CHOICE)
 ```cpp
-? Money amount = Money::FromCents(1050, "USD");
-   std::cout << amount.ToString() << "\n";  // "10.50 USD"
+✓ Money amount = Money::FromMinorUnits(1050, "DKK");
+   std::cout << amount.ToString(',', '.', true) << "\n";  // "DKK 10,50"
    // Benefits: Exact, fast, predictable, proper formatting, internationalization
 ```
 
 ### Approach 3: Decimal Library (Alternative)
 ```cpp
 ?? decimal::Decimal amount("10.50");
-   std::cout << amount << " USD\n";  // Manual formatting needed
+   std::cout << amount << " DKK\n";  // Manual formatting needed
    // Benefits: Exact decimal arithmetic
    // Drawbacks: Requires external library, slower, more complex, manual formatting
 ```
@@ -167,31 +171,31 @@ std::string ToString(char decimal_sep, char thousands_sep, bool show_currency) {
 ### Rounding During Construction
 
 ```cpp
-// Input strings are parsed to nearest cent
-Money m1("10.505", "USD");   // Truncated to 1050 cents ($10.50)
-Money m2("10.50", "USD");    // Exact: 1050 cents ($10.50)
+// Input strings are parsed to nearest øre
+Money m1("10.505", "DKK");   // Truncated to 1050 øre (DKK 10,50)
+Money m2("10,50", "DKK");    // Exact: 1050 øre (DKK 10,50)
 
-// Both European and US formats supported
-Money us("1,234.56", "USD");   // 123456 cents
-Money eu("1.234,56", "EUR");   // 123456 cents (comma is decimal separator)
+// Both Danish and alternative formats supported
+Money dk("1.234,56", "DKK");   // 123456 øre (comma decimal)
+Money alt("1,234.56", "DKK");  // 123456 øre (period decimal)
 ```
 
 ### Very Large Amounts
 
 ```cpp
 // int64_t supports huge values
-Money large = Money::FromCents(9223372036854775807LL, "USD");
-// Maximum: $92,233,720,368,547.75 (over 92 trillion dollars)
+Money large = Money::FromMinorUnits(9223372036854775807LL, "DKK");
+// Maximum: 92.233.720.368.547,75 DKK (over 92 trillion kroner)
 ```
 
 ### Currency Validation
 
 ```cpp
-Money usd(10.00, "USD");
-Money eur(10.00, "EUR");
+Money dkk("10.00", "DKK");
+Money eur("10.00", "EUR");
 
 // Operations validate matching currencies
-Money total = usd.Add(eur);  // Throws: "Cannot add different currencies"
+Money total = dkk.Add(eur);  // Throws: "Cannot add different currencies"
 ```
 
 ## Best Practices
@@ -199,23 +203,23 @@ Money total = usd.Add(eur);  // Throws: "Cannot add different currencies"
 ### DO ?
 
 ```cpp
-// Use FromCents when you have exact cent values
-Money precise = Money::FromCents(1050, "USD");
+// Use FromMinorUnits when you have exact minor unit values
+Money precise = Money::FromMinorUnits(1050, "DKK");
 
-// Use GetCents for calculations
-int64_t subtotal = price.GetCents();
-int64_t tax = subtotal * 7 / 100;  // Integer division (exact)
-Money total = Money::FromCents(subtotal + tax, "USD");
+// Use GetMinorUnits for calculations
+int64_t subtotal = price.GetMinorUnits();
+int64_t tax = subtotal * 25 / 100;  // 25% Danish VAT (integer division, exact)
+Money total = Money::FromMinorUnits(subtotal + tax, "DKK");
 
 // Use ToString() for display with proper formatting
-std::cout << total.ToString() << "\n";  // "10.50 USD"
+std::cout << total.ToString(',', '.', true) << "\n";  // "10,50 DKK"
 
-// Store as cents in databases
-int64_t db_value = amount.GetCents();
+// Store as minor units in databases
+int64_t db_value = amount.GetMinorUnits();
 
 // Format for different locales
-std::string us_fmt = amount.ToString('.', ',', true);   // "1,234.56 USD"
-std::string eu_fmt = amount.ToString(',', '.', true);   // "1.234,56 USD"
+std::string dk_fmt = amount.ToString(',', '.', true);   // "1.234,56 DKK"
+std::string alt_fmt = amount.ToString('.', ',', true);  // "1,234.56 DKK"
 ```
 
 ### DON'T ?
@@ -225,29 +229,29 @@ std::string eu_fmt = amount.ToString(',', '.', true);   // "1.234,56 USD"
 double bad = 10.50;  // Wrong abstraction!
 
 // Don't manually format money strings
-std::cout << price.GetCents() / 100.0 << " USD";  // NO! Use ToString()
+std::cout << price.GetMinorUnits() / 100.0 << " DKK";  // NO! Use ToString()
 
 // Don't multiply Money by floating-point
 double multiplier = 1.5;  // Use integer math instead
 // Bad:  result = amount * multiplier;
-// Good: result = Money::FromCents(amount.GetCents() * 3 / 2, "USD");
+// Good: result = Money::FromMinorUnits(amount.GetMinorUnits() * 3 / 2, "DKK");
 ```
 
 ## Database Storage
 
-When persisting to a database, store the cents as a BIGINT:
+When persisting to a database, store the minor units (øre for DKK) as a BIGINT:
 
 ```sql
 CREATE TABLE payments (
     id VARCHAR(50) PRIMARY KEY,
-    amount_cents BIGINT NOT NULL,     -- Store as integer cents
+    amount_minor_units BIGINT NOT NULL,     -- Store as integer øre for DKK
     currency VARCHAR(3) NOT NULL,
     ...
 );
 
 -- Query example:
-INSERT INTO payments (id, amount_cents, currency)
-VALUES ('PAY-001', 1050, 'USD');      -- $10.50 as 1050 cents
+INSERT INTO payments (id, amount_minor_units, currency)
+VALUES ('PAY-001', 1050, 'DKK');      -- DKK 10,50 stored as 1050 øre
 ```
 
 ## API/JSON Serialization
@@ -257,9 +261,9 @@ When serializing to JSON, you have options:
 ```json
 {
   "payment_id": "PAY-001",
-  "amount_cents": 1050,
-  "currency": "USD",
-  "amount_display": "10.50 USD"
+  "amount_minor_units": 1050,
+  "currency": "DKK",
+  "amount_display": "DKK 10,50"
 }
 ```
 
@@ -268,50 +272,50 @@ Or for international APIs:
 ```json
 {
   "payment_id": "PAY-001",
-  "amount_cents": 1050,
-  "currency": "USD",
+  "amount_minor_units": 1050,
+  "currency": "DKK",
   "formatted": {
-    "us": "10.50 USD",
-    "eu": "10,50 USD"
+    "dk": "DKK 10,50",
+    "alt": "DKK 10.50"
   }
 }
 ```
 
-Always store `amount_cents` for precision; add display formats for convenience.
+Always store `amount_minor_units` for precision; add display formats for convenience.
 
 ## Testing
 
-The integer cents approach makes testing exact and predictable:
+The integer minor units (øre) approach makes testing exact and predictable:
 
 ```cpp
 TEST(MoneyTest, Addition_Is_Exact) {
-    Money a = Money::FromCents(10, "USD");   // $0.10
-    Money b = Money::FromCents(20, "USD");   // $0.20
+    Money a = Money::FromMinorUnits(10, "DKK");   // 10 øre = DKK 0,10
+    Money b = Money::FromMinorUnits(20, "DKK");   // 20 øre = DKK 0,20
 
     Money sum = a.Add(b);
 
-    EXPECT_EQ(sum.GetCents(), 30);  // Always exactly 30, never 29 or 31
-    EXPECT_EQ(sum.ToString(), "0.30 USD");
+    EXPECT_EQ(sum.GetMinorUnits(), 30);  // Always exactly 30 øre, never 29 or 31
+    EXPECT_EQ(sum.ToString(',', '.', true), "DKK 0,30");
 }
 
 TEST(MoneyTest, No_Floating_Point_Errors) {
-    Money total = Money::Zero("USD");
-    Money increment = Money::FromCents(10, "USD");  // $0.10
+    Money total = Money::Zero("DKK");
+    Money increment = Money::FromMinorUnits(10, "DKK");  // 10 øre
 
     for (int i = 0; i < 1000; i++) {
         total = total.Add(increment);
     }
 
-    EXPECT_EQ(total.GetCents(), 10000);  // Exactly $100.00
-    EXPECT_EQ(total.ToString(), "100.00 USD");
+    EXPECT_EQ(total.GetMinorUnits(), 10000);  // Exactly 10000 øre = DKK 100,00
+    EXPECT_EQ(total.ToString(',', '.', true), "DKK 100,00");
 }
 
 TEST(MoneyTest, Formatting_With_Thousands_Separator) {
-    Money large = Money::FromCents(123456789, "USD");
+    Money large = Money::FromMinorUnits(123456789, "DKK");
 
-    EXPECT_EQ(large.ToString('.', ',', true), "1,234,567.89 USD");
-    EXPECT_EQ(large.ToString(',', '.', true), "1.234.567,89 USD");
-    EXPECT_EQ(large.ToString('.', '\'', true), "1'234'567.89 USD");
+    EXPECT_EQ(large.ToString(',', '.', true), "DKK 1.234.567,89");
+    EXPECT_EQ(large.ToString('.', ',', true), "DKK 1,234,567.89");
+    EXPECT_EQ(large.ToString('.', '\'', true), "DKK 1'234'567.89");
 }
 ```
 
@@ -323,15 +327,15 @@ TEST(MoneyTest, Formatting_With_Thousands_Separator) {
 
 ## Summary
 
-Using integer cents for money with proper formatting:
-- ? Eliminates floating-point precision errors
-- ? Provides exact arithmetic for financial calculations
-- ? Ensures consistent results across platforms
-- ? Follows financial industry best practices
-- ? Maintains acceptable performance
-- ? Supports very large monetary values
-- ? Provides proper display formatting with thousands separators
-- ? Supports international number formats
-- ? Eliminates double from the public API (correct abstraction)
+Using integer minor units (øre for DKK) for money with proper formatting:
+- ✓ Eliminates floating-point precision errors
+- ✓ Provides exact arithmetic for financial calculations
+- ✓ Ensures consistent results across platforms
+- ✓ Follows financial industry best practices
+- ✓ Maintains acceptable performance
+- ✓ Supports very large monetary values
+- ✓ Provides proper display formatting with thousands separators
+- ✓ Supports Danish number formats (currency before amount: "DKK 10,50")
+- ✓ Eliminates double from the public API (correct abstraction)
 
 This implementation prioritizes **correctness, precision, and proper formatting** over convenience, which is essential for financial applications.

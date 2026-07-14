@@ -9,16 +9,16 @@ namespace logos::payment_service::domain::value_objects {
 /// Shared Value Object representing monetary amounts.
 /// Used by both Domain logic and Application contracts (AP-004 §7).
 /// 
-/// Stores amount as integer cents (smallest currency unit) to avoid
+/// Stores amount as integer minorUnits (smallest currency unit) to avoid
 /// floating-point precision issues. Amount is stored as: actual_amount * 100
-/// For example: $10.50 is stored as 1050 cents
+/// For example: kr. 10.50 is stored as 1050 minorUnits
 class Money {
 public:
     /// Construct from string representation (e.g., "10.50")
     Money(const std::string& amount_str, const std::string& currency);
 
-    /// Construct from cents directly (preferred for precision)
-    static Money FromCents(int64_t cents, const std::string& currency);
+    /// Construct from minorUnits directly (preferred for precision)
+    static Money FromMinorUnits(int64_t minor_units, const std::string& currency);
 
     static Money Zero(const std::string& currency);
 
@@ -26,29 +26,29 @@ public:
     bool IsPositive() const;
     bool IsGreaterThan(const Money& other) const;
 
-    /// Get raw cents value (for calculations and persistence)
-    int64_t GetCents() const { return cents_; }
+    /// Get raw minorUnits value (for calculations and persistence)
+    int64_t GetMinorUnits() const { return minor_units_; }
 
     const std::string& GetCurrency() const { return currency_; }
 
     /// Format for display with proper separators and currency
-    /// Uses period as decimal separator and comma as thousands separator
-    /// e.g., "1,234.56 USD"
+    /// Danish default: comma decimal, period thousands, currency prefix
+    /// e.g., "DKK 1.234,56"
     std::string ToString() const;
 
     /// Format with custom separators
     /// @param decimal_sep Decimal separator (e.g., '.' or ',')
     /// @param thousands_sep Thousands separator (e.g., ',' or '.' or ' ')
-    /// @param show_currency If true, appends currency code
+    /// @param show_currency If true, prepends currency code (Danish convention)
     std::string ToString(char decimal_sep, char thousands_sep, bool show_currency = true) const;
 
     bool operator==(const Money& other) const;
     bool operator!=(const Money& other) const;
 
 private:
-    Money(int64_t cents, const std::string& currency);
+    Money(int64_t minor_units, const std::string& currency);
 
-    int64_t cents_;      // Amount in smallest currency unit (cents)
+    int64_t minor_units_;      // Amount in smallest currency unit (e.g., øre for DKK)
     std::string currency_;
 };
 
