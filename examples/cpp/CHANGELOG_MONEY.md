@@ -84,7 +84,7 @@ All tests pass with exact precision:
 1. ? **No rounding errors** - Integer arithmetic is exact
 2. ? **Predictable** - Same results on all platforms
 3. ? **Fast** - Integer operations are typically faster
-4. ? **Large range** - Supports ±$92 trillion
+4. ? **Large range** - Supports ï¿½$92 trillion
 5. ? **Industry standard** - Follows financial best practices
 6. ? **Testable** - Exact equality comparisons
 
