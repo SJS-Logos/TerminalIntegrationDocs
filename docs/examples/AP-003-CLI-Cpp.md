@@ -1,7 +1,5 @@
 # CLI Application Example: C++
 
-# CLI Application Example: C++
-
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  

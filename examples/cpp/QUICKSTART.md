@@ -146,10 +146,9 @@ The application demonstrates several business rules:
 
 The compiled executable demonstrates:
 
-- **Domain Layer** (`logos_payment_service_domain.lib`): Pure business logic with no external dependencies
-- **Application Layer** (`logos_payment_service_application.lib`): Use case orchestration
-- **Adapters Layer** (`logos_payment_service_adapters.lib`): Infrastructure implementations (in-memory storage, simple fraud detection)
-- **CLI Layer** (`payment_cli.exe`): Command-line interface entry point
+- **Core Unit** (`logos_payment_core.lib`): Domain, SharedKernel, Capabilities, and Application - pure business logic with no Host dependencies
+- **Infrastructure Unit** (`logos_payment_infrastructure.lib`): Capability implementations (in-memory storage, simple fraud detection)
+- **CLI Host Unit** (`payment_cli.exe`): Command-line interface entry point
 
 ## Troubleshooting
 

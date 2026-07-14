@@ -1,7 +1,5 @@
 # HTTP Controller Example: C#
 
-# HTTP Controller Example: C#
-
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  

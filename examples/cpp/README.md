@@ -6,30 +6,31 @@ This is a complete C++ implementation of the payment service following the archi
 
 ```
 examples/cpp/
-??? logos_payment_service_domain/          # Domain layer (business logic)
-?   ??? value_objects/                     # Immutable domain concepts
+??? logos_payment_core/                    # Core Unit (AP-002)
+?   ??? domain/                            # Domain layer (business logic)
+?   ?   ??? services/                      # Stateless business logic
+?   ?       ??? payment_authorization_service.h/cpp
+?   ??? shared_kernel/                     # Shared business datatypes
 ?   ?   ??? money.h/cpp
 ?   ?   ??? payment_status.h
 ?   ?   ??? payment_record.h
-?   ??? services/                          # Stateless business logic
-?   ?   ??? payment_authorization_service.h/cpp
-?   ??? abstractions/                      # Domain-owned interfaces
-?       ??? fraud_detection_service.h
-?       ??? payment_repository.h
-??? logos_payment_service_application/     # Application layer (orchestration)
-?   ??? contracts/                         # Request/Response DTOs
-?   ?   ??? authorize_payment_request.h
-?   ?   ??? authorize_payment_response.h
-?   ?   ??? get_payment_response.h
-?   ??? use_cases/                         # Application workflows
-?   ?   ??? authorize_payment_use_case.h/cpp
-?   ?   ??? get_payment_use_case.h/cpp
-?   ??? container/                         # Dependency injection
-?       ??? service_container.h
-??? logos_payment_service_adapters/        # Adapters layer (infrastructure)
+?   ??? capabilities/                      # Domain-owned interfaces
+?   ?   ??? fraud_detection_service.h
+?   ?   ??? payment_repository.h
+?   ??? application/                       # Application layer (orchestration)
+?       ??? contracts/                     # Request/Response DTOs
+?       ?   ??? authorize_payment_request.h
+?       ?   ??? authorize_payment_response.h
+?       ?   ??? get_payment_response.h
+?       ??? use_cases/                     # Application workflows
+?       ?   ??? authorize_payment_use_case.h/cpp
+?       ?   ??? get_payment_use_case.h/cpp
+?       ??? container/                     # Dependency injection
+?           ??? service_container.h
+??? logos_payment_infrastructure/          # Infrastructure Unit (capability impls)
 ?   ??? in_memory_payment_repository.h/cpp
 ?   ??? simple_fraud_detection_service.h/cpp
-??? logos_payment_service_cli/             # CLI entry point
+??? logos_payment_cli_host/                # CLI Host Unit (AP-003)
     ??? cli_parser.h/cpp
     ??? commands/
     ?   ??? authorize_command.h/cpp
@@ -218,21 +219,21 @@ std::cout << large.ToString() << "\n";  // Output: "1,234,567.89 USD"
 
 The domain layer contains pure business logic with zero dependencies on infrastructure:
 
-- **Value Objects**: Immutable domain concepts (Money, PaymentStatus, PaymentRecord)
+- **Shared Kernel**: Shared immutable business datatypes (Money, PaymentStatus, PaymentRecord)
 - **Domain Services**: Stateless business logic (PaymentAuthorizationService)
-- **Abstractions**: Domain-owned interfaces describing capabilities
+- **Capabilities**: Domain-owned interfaces describing capabilities
 
 ### Application Layer (Depends Only on Domain)
 
 The application layer orchestrates domain services:
 
 - **Use Cases**: Coordinate domain services and persistence
-- **Contracts**: Request/Response models using domain value objects
+- **Contracts**: Request/Response models using shared kernel value objects
 - **Service Container**: Simple dependency injection
 
-### Adapters Layer (Implements Domain Abstractions)
+### Infrastructure Unit (Implements Domain Capabilities)
 
-The adapters layer provides concrete implementations:
+The infrastructure unit provides concrete implementations:
 
 - **InMemoryPaymentRepository**: Simple in-memory storage for demo
 - **SimpleFraudDetectionService**: Basic fraud detection (flags amounts > $5000)
@@ -279,9 +280,9 @@ To add a real database or external fraud detection service:
 
 ### Add a New Use Case
 
-1. Create a new use case in `logos_payment_service_application/use_cases/`
-2. Define contracts in `logos_payment_service_application/contracts/`
-3. Create a CLI command in `logos_payment_service_cli/commands/`
+1. Create a new use case in `logos_payment_core/application/use_cases/`
+2. Define contracts in `logos_payment_core/application/contracts/`
+3. Create a CLI command in `logos_payment_cli_host/commands/`
 4. Wire it up in `main.cpp`
 
 ## References

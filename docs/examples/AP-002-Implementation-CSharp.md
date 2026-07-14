@@ -1,7 +1,5 @@
 # AP-002 Implementation Guide: C#
 
-# AP-002 Implementation Guide: C#
-
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-002, AP-004  

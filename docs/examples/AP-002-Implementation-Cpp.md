@@ -1,7 +1,5 @@
 # AP-002 Implementation Guide: C++
 
-# AP-002 Implementation Guide: C++
-
 **Version:** 1.0  
 **Status:** Draft  
 **Applies to:** AP-002, AP-004  
@@ -272,7 +270,7 @@ Example test structure:
 #include <gmock/gmock.h>
 #include "domain/services/payment_authorization_service.h"
 
-using namespace logos::payment_service::domain;
+using namespace logos::payment::core::domain;
 
 class MockFraudDetectionService : public abstractions::IFraudDetectionService {
 public:
@@ -292,7 +290,7 @@ TEST(PaymentAuthorizationServiceTest, Authorize_Declines_When_Amount_Exceeds_Max
     auto result = service.Authorize(amount, "MERCH-001");
 
     ASSERT_FALSE(result.is_authorized);
-    ASSERT_EQ(result.status, value_objects::PaymentStatus::Declined);
+    ASSERT_EQ(result.status, shared_kernel::PaymentStatus::Declined);
     ASSERT_TRUE(result.decline_reason.has_value());
 }
 ```
@@ -322,16 +320,16 @@ bool Money::operator!=(const Money& other) const {
     return !(*this == other);
 }
 
-} // namespace logos::payment_service::domain::value_objects
+} // namespace logos::payment::core::shared_kernel
 ```
 
 </details>
 
 ```cpp
-// logos_payment_service_domain/value_objects/payment_status.h
+// logos_payment_core/shared_kernel/payment_status.h
 #pragma once
 
-namespace logos::payment_service::domain::value_objects {
+namespace logos::payment::core::shared_kernel {
 
 /// Shared Value Object representing payment authorization status.
 enum class PaymentStatus {
@@ -340,11 +338,11 @@ enum class PaymentStatus {
     Declined
 };
 
-} // namespace logos::payment_service::domain::value_objects
+} // namespace logos::payment::core::shared_kernel
 ```
 
 ```cpp
-// logos_payment_service_domain/value_objects/payment_record.h
+// logos_payment_core/shared_kernel/payment_record.h
 #pragma once
 
 #include "money.h"
@@ -353,7 +351,7 @@ enum class PaymentStatus {
 #include <chrono>
 #include <optional>
 
-namespace logos::payment_service::domain::value_objects {
+namespace logos::payment::core::shared_kernel {
 
 /// Value Object representing a payment record.
 /// The identity (id) is assigned by the repository/database.
@@ -366,7 +364,7 @@ struct PaymentRecord {
     std::optional<std::string> decline_reason;
 };
 
-} // namespace logos::payment_service::domain::value_objects
+} // namespace logos::payment::core::shared_kernel
 ```
 
 ## 3.2 Domain Services
@@ -374,22 +372,22 @@ struct PaymentRecord {
 Domain services contain business logic and work with Value Objects. They are stateless.
 
 ```cpp
-// logos_payment_service_domain/services/payment_authorization_service.h
+// logos_payment_core/domain/services/payment_authorization_service.h
 #pragma once
 
-#include "value_objects/money.h"
-#include "value_objects/payment_status.h"
+#include "shared_kernel/money.h"
+#include "shared_kernel/payment_status.h"
 #include "abstractions/fraud_detection_service.h"
 #include <memory>
 #include <optional>
 #include <string>
 
-namespace logos::payment_service::domain::services {
+namespace logos::payment::core::core::domain::services {
 
 /// Result of payment authorization business logic
 struct PaymentAuthorizationResult {
     bool is_authorized;
-    value_objects::PaymentStatus status;
+    shared_kernel::PaymentStatus status;
     std::optional<std::string> decline_reason;
 };
 
@@ -399,42 +397,42 @@ class PaymentAuthorizationService {
 public:
     explicit PaymentAuthorizationService(
         abstractions::IFraudDetectionService* fraud_detection,
-        const value_objects::Money& maximum_amount);
+        const shared_kernel::Money& maximum_amount);
 
     PaymentAuthorizationResult Authorize(
-        const value_objects::Money& amount,
+        const shared_kernel::Money& amount,
         const std::string& merchant_id);
 
 private:
     abstractions::IFraudDetectionService* fraud_detection_;  // Non-owning
-    value_objects::Money maximum_amount_;
+    shared_kernel::Money maximum_amount_;
 };
 
-} // namespace logos::payment_service::domain::services
+} // namespace logos::payment::core::core::domain::services
 ```
 
 ```cpp
-// logos_payment_service_domain/services/payment_authorization_service.cpp
+// logos_payment_core/domain/services/payment_authorization_service.cpp
 #include "services/payment_authorization_service.h"
 
-namespace logos::payment_service::domain::services {
+namespace logos::payment::core::core::domain::services {
 
 PaymentAuthorizationService::PaymentAuthorizationService(
     abstractions::IFraudDetectionService* fraud_detection,
-    const value_objects::Money& maximum_amount)
+    const shared_kernel::Money& maximum_amount)
     : fraud_detection_(fraud_detection)
     , maximum_amount_(maximum_amount) {
 }
 
 PaymentAuthorizationResult PaymentAuthorizationService::Authorize(
-    const value_objects::Money& amount,
+    const shared_kernel::Money& amount,
     const std::string& merchant_id) {
 
     // Business rule: Amount must be positive
     if (!amount.IsPositive()) {
         return PaymentAuthorizationResult{
             false,
-            value_objects::PaymentStatus::Declined,
+            shared_kernel::PaymentStatus::Declined,
             "Amount must be positive"
         };
     }
@@ -448,7 +446,7 @@ PaymentAuthorizationResult PaymentAuthorizationService::Authorize(
     if (is_fraudulent) {
         return PaymentAuthorizationResult{
             false,
-            value_objects::PaymentStatus::Declined,
+            shared_kernel::PaymentStatus::Declined,
             "Suspected fraud"
         };
     }
@@ -458,19 +456,19 @@ PaymentAuthorizationResult PaymentAuthorizationService::Authorize(
         amount.IsGreaterThan(maximum_amount_)) {
         return PaymentAuthorizationResult{
             false,
-            value_objects::PaymentStatus::Declined,
+            shared_kernel::PaymentStatus::Declined,
             "Amount exceeds maximum limit"
         };
     }
 
     return PaymentAuthorizationResult{
         true,
-        value_objects::PaymentStatus::Authorized,
+        shared_kernel::PaymentStatus::Authorized,
         std::nullopt
     };
 }
 
-} // namespace logos::payment_service::domain::services
+} // namespace logos::payment::core::core::domain::services
 ```
 
 ## 3.3 Capabilities (Domain Abstractions)
@@ -478,12 +476,12 @@ PaymentAuthorizationResult PaymentAuthorizationService::Authorize(
 Capabilities are domain-owned abstractions that describe what the Domain requires.
 
 ```cpp
-// logos_payment_service_domain/abstractions/fraud_detection_service.h
+// logos_payment_core/capabilities/fraud_detection_service.h
 #pragma once
 
 #include <string>
 
-namespace logos::payment_service::domain::abstractions {
+namespace logos::payment::core::capabilities {
 
 /// Capability: Fraud detection expressed in domain terms.
 class IFraudDetectionService {
@@ -496,21 +494,21 @@ public:
         const std::string& merchant_id) = 0;
 };
 
-} // namespace logos::payment_service::domain::abstractions
+} // namespace logos::payment::core::capabilities
 ```
 
 ```cpp
-// logos_payment_service_domain/abstractions/payment_repository.h
+// logos_payment_core/capabilities/payment_repository.h
 #pragma once
 
-#include "value_objects/payment_record.h"
-#include "value_objects/money.h"
-#include "value_objects/payment_status.h"
+#include "shared_kernel/payment_record.h"
+#include "shared_kernel/money.h"
+#include "shared_kernel/payment_status.h"
 #include <memory>
 #include <optional>
 #include <string>
 
-namespace logos::payment_service::domain::abstractions {
+namespace logos::payment::core::capabilities {
 
 /// Capability: Persistence expressed in domain terms.
 /// Responsible for identity generation and state management.
@@ -518,18 +516,18 @@ class IPaymentRepository {
 public:
     virtual ~IPaymentRepository() = default;
 
-    virtual std::optional<value_objects::PaymentRecord> GetById(
+    virtual std::optional<shared_kernel::PaymentRecord> GetById(
         const std::string& id) = 0;
 
     /// Saves a payment record. The repository assigns the id.
-    virtual value_objects::PaymentRecord Save(
-        const value_objects::Money& amount,
+    virtual shared_kernel::PaymentRecord Save(
+        const shared_kernel::Money& amount,
         const std::string& merchant_id,
-        value_objects::PaymentStatus status,
+        shared_kernel::PaymentStatus status,
         const std::optional<std::string>& decline_reason) = 0;
 };
 
-} // namespace logos::payment_service::domain::abstractions
+} // namespace logos::payment::core::capabilities
 ```
 
 ---
@@ -541,59 +539,59 @@ public:
 Contract models reference shared Value Objects from the Domain (AP-004 §7).
 
 ```cpp
-// logos_payment_service_application/contracts/authorize_payment_request.h
+// logos_payment_core/application/contracts/authorize_payment_request.h
 #pragma once
 
-#include "domain/value_objects/money.h"
+#include "shared_kernel/money.h"
 #include <string>
 
-namespace logos::payment_service::application::contracts {
+namespace logos::payment::core::application::contracts {
 
 /// Contract model that references shared Value Objects.
 /// No duplication - Money is defined once in Domain.
 struct AuthorizePaymentRequest {
-    domain::value_objects::Money amount;
+    domain::shared_kernel::Money amount;
     std::string merchant_id;
 };
 
-} // namespace logos::payment_service::application::contracts
+} // namespace logos::payment::core::application::contracts
 ```
 
 ```cpp
-// logos_payment_service_application/contracts/authorize_payment_response.h
+// logos_payment_core/application/contracts/authorize_payment_response.h
 #pragma once
 
-#include "domain/value_objects/money.h"
-#include "domain/value_objects/payment_status.h"
+#include "shared_kernel/money.h"
+#include "shared_kernel/payment_status.h"
 #include <string>
 #include <optional>
 
-namespace logos::payment_service::application::contracts {
+namespace logos::payment::core::application::contracts {
 
 /// Contract model that references shared Value Objects.
 struct AuthorizePaymentResponse {
     std::string payment_id;
     bool is_authorized;
-    domain::value_objects::PaymentStatus status;
-    domain::value_objects::Money amount;
+    domain::shared_kernel::PaymentStatus status;
+    domain::shared_kernel::Money amount;
     std::optional<std::string> decline_reason;
 };
 
-} // namespace logos::payment_service::application::contracts
+} // namespace logos::payment::core::application::contracts
 ```
 
 ```cpp
-// logos_payment_service_application/contracts/get_payment_response.h
+// logos_payment_core/application/contracts/get_payment_response.h
 #pragma once
 
-#include "domain/value_objects/payment_record.h"
+#include "shared_kernel/payment_record.h"
 
-namespace logos::payment_service::application::contracts {
+namespace logos::payment::core::application::contracts {
 
 /// Contract model for retrieving payment records.
-using GetPaymentResponse = domain::value_objects::PaymentRecord;
+using GetPaymentResponse = domain::shared_kernel::PaymentRecord;
 
-} // namespace logos::payment_service::application::contracts
+} // namespace logos::payment::core::application::contracts
 ```
 
 ## 4.2 Service Container (Dependency Injection)
@@ -601,7 +599,7 @@ using GetPaymentResponse = domain::value_objects::PaymentRecord;
 A simple service container manages dependency lifetimes and provides type-safe access.
 
 ```cpp
-// logos_payment_service_application/container/service_container.h
+// logos_payment_core/application/container/service_container.h
 #pragma once
 
 #include <memory>
@@ -609,7 +607,7 @@ A simple service container manages dependency lifetimes and provides type-safe a
 #include <typeindex>
 #include <stdexcept>
 
-namespace logos::payment_service::application::container {
+namespace logos::payment::core::application::container {
 
 /// Simple service container for dependency injection.
 /// Owns service instances and provides type-safe access.
@@ -681,7 +679,7 @@ private:
     std::unordered_map<std::type_index, std::unique_ptr<ServiceHolder>> services_;
 };
 
-} // namespace logos::payment_service::application::container
+} // namespace logos::payment::core::application::container
 ```
 
 **Simplified implementation**: [service_container.cpp](code-snippets/service_container.cpp)
@@ -691,7 +689,7 @@ private:
 Use cases receive their dependencies through constructor injection.
 
 ```cpp
-// logos_payment_service_application/use_cases/authorize_payment_use_case.h
+// logos_payment_core/application/use_cases/authorize_payment_use_case.h
 #pragma once
 
 #include "contracts/authorize_payment_request.h"
@@ -699,7 +697,7 @@ Use cases receive their dependencies through constructor injection.
 #include "domain/services/payment_authorization_service.h"
 #include "domain/abstractions/payment_repository.h"
 
-namespace logos::payment_service::application::use_cases {
+namespace logos::payment::core::application::use_cases {
 
 /// Use case that orchestrates payment authorization.
 /// Domain service performs business logic.
@@ -707,29 +705,29 @@ namespace logos::payment_service::application::use_cases {
 class AuthorizePaymentUseCase {
 public:
     AuthorizePaymentUseCase(
-        domain::services::PaymentAuthorizationService* auth_service,
-        domain::abstractions::IPaymentRepository* repository);
+        core::domain::services::PaymentAuthorizationService* auth_service,
+        core::capabilities::IPaymentRepository* repository);
 
     contracts::AuthorizePaymentResponse Execute(
         const contracts::AuthorizePaymentRequest& request);
 
 private:
-    domain::services::PaymentAuthorizationService* auth_service_;  // Non-owning
-    domain::abstractions::IPaymentRepository* repository_;         // Non-owning
+    core::domain::services::PaymentAuthorizationService* auth_service_;  // Non-owning
+    core::capabilities::IPaymentRepository* repository_;         // Non-owning
 };
 
-} // namespace logos::payment_service::application::use_cases
+} // namespace logos::payment::core::application::use_cases
 ```
 
 ```cpp
-// logos_payment_service_application/use_cases/authorize_payment_use_case.cpp
+// logos_payment_core/application/use_cases/authorize_payment_use_case.cpp
 #include "use_cases/authorize_payment_use_case.h"
 
-namespace logos::payment_service::application::use_cases {
+namespace logos::payment::core::application::use_cases {
 
 AuthorizePaymentUseCase::AuthorizePaymentUseCase(
-    domain::services::PaymentAuthorizationService* auth_service,
-    domain::abstractions::IPaymentRepository* repository)
+    core::domain::services::PaymentAuthorizationService* auth_service,
+    core::capabilities::IPaymentRepository* repository)
     : auth_service_(auth_service)
     , repository_(repository) {
 }
@@ -758,11 +756,11 @@ AuthorizePaymentUseCase::Execute(
     };
 }
 
-} // namespace logos::payment_service::application::use_cases
+} // namespace logos::payment::core::application::use_cases
 ```
 
 ```cpp
-// logos_payment_service_application/use_cases/get_payment_use_case.h
+// logos_payment_core/application/use_cases/get_payment_use_case.h
 #pragma once
 
 #include "contracts/get_payment_response.h"
@@ -770,30 +768,30 @@ AuthorizePaymentUseCase::Execute(
 #include <optional>
 #include <string>
 
-namespace logos::payment_service::application::use_cases {
+namespace logos::payment::core::application::use_cases {
 
 /// Use case for retrieving payment records.
 class GetPaymentUseCase {
 public:
-    explicit GetPaymentUseCase(domain::abstractions::IPaymentRepository* repository);
+    explicit GetPaymentUseCase(core::capabilities::IPaymentRepository* repository);
 
     std::optional<contracts::GetPaymentResponse> Execute(
         const std::string& payment_id);
 
 private:
-    domain::abstractions::IPaymentRepository* repository_;  // Non-owning
+    core::capabilities::IPaymentRepository* repository_;  // Non-owning
 };
 
-} // namespace logos::payment_service::application::use_cases
+} // namespace logos::payment::core::application::use_cases
 ```
 
 ```cpp
-// logos_payment_service_application/use_cases/get_payment_use_case.cpp
+// logos_payment_core/application/use_cases/get_payment_use_case.cpp
 #include "use_cases/get_payment_use_case.h"
 
-namespace logos::payment_service::application::use_cases {
+namespace logos::payment::core::application::use_cases {
 
-GetPaymentUseCase::GetPaymentUseCase(domain::abstractions::IPaymentRepository* repository)
+GetPaymentUseCase::GetPaymentUseCase(core::capabilities::IPaymentRepository* repository)
     : repository_(repository) {
 }
 
@@ -803,7 +801,7 @@ GetPaymentUseCase::Execute(const std::string& payment_id) {
 }
 }
 
-} // namespace logos::payment_service::application::use_cases
+} // namespace logos::payment::core::application::use_cases
 ```
 
 ---
@@ -827,35 +825,35 @@ int main() {
     auto config = Configuration::Load("appsettings.json");
 
     // Create service container
-    logos::payment_service::application::container::ServiceContainer container;
+    logos::payment::core::application::container::ServiceContainer container;
 
     // Register domain configuration
-    auto maximum_amount = logos::payment_service::domain::value_objects::Money(
+    auto maximum_amount = logos::payment::core::shared_kernel::Money(
         config.GetDouble("Payment:MaximumAmount"),
         config.GetString("Payment:Currency"));
 
     // Register capability implementations (container takes ownership)
-    container.Register<domain::abstractions::IPaymentRepository>(
+    container.Register<core::capabilities::IPaymentRepository>(
         std::make_unique<adapters::SqlitePaymentRepository>(config));
 
-    container.Register<domain::abstractions::IFraudDetectionService>(
+    container.Register<core::capabilities::IFraudDetectionService>(
         std::make_unique<adapters::ThirdPartyFraudDetectionService>(config));
 
     // Register domain services
-    container.Register<domain::services::PaymentAuthorizationService>(
-        std::make_unique<domain::services::PaymentAuthorizationService>(
-            container.Resolve<domain::abstractions::IFraudDetectionService>(),
+    container.Register<core::domain::services::PaymentAuthorizationService>(
+        std::make_unique<core::domain::services::PaymentAuthorizationService>(
+            container.Resolve<core::capabilities::IFraudDetectionService>(),
             maximum_amount));
 
     // Create and use use case with resolved dependencies
-    logos::payment_service::application::use_cases::AuthorizePaymentUseCase 
+    logos::payment::core::application::use_cases::AuthorizePaymentUseCase 
         use_case(
-            container.Resolve<domain::services::PaymentAuthorizationService>(),
-            container.Resolve<domain::abstractions::IPaymentRepository>());
+            container.Resolve<core::domain::services::PaymentAuthorizationService>(),
+            container.Resolve<core::capabilities::IPaymentRepository>());
 
-    auto request = logos::payment_service::application::contracts::
+    auto request = logos::payment::core::application::contracts::
         AuthorizePaymentRequest{
-            logos::payment_service::domain::value_objects::Money(100.0, "USD"),
+            logos::payment::core::shared_kernel::Money(100.0, "USD"),
             "MERCH-001"
         };
 
@@ -880,9 +878,9 @@ The key point for AP-002 is:
 
 # 7. Key Points
 
-1. **The Domain has no external dependencies**: `logos_payment_service_domain` links against no other service targets.
+1. **The Domain has no external dependencies**: `logos_payment_core` links against no other service targets.
 
-2. **The Application depends only on the Domain**: `logos_payment_service_application` links only against `logos_payment_service_domain`.
+2. **The Application depends only on the Domain**: `logos_payment_core/application` links only against `logos_payment_core`.
 
 3. **Value Objects are shared** (AP-004 §7): `Money`, `PaymentStatus`, and `PaymentRecord` are defined once in the Domain and referenced by Application contracts. No duplication.
 
@@ -913,7 +911,7 @@ Business logic can be tested in complete isolation using GoogleMock.
 #include <gmock/gmock.h>
 #include "domain/services/payment_authorization_service.h"
 
-using namespace logos::payment_service::domain;
+using namespace logos::payment::core::domain;
 
 class MockFraudDetectionService : public abstractions::IFraudDetectionService {
 public:
@@ -926,14 +924,14 @@ TEST(PaymentAuthorizationServiceTest, Authorize_Declines_When_Amount_Exceeds_Max
     EXPECT_CALL(fraud_detection, IsFraudulent(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Return(false));
 
-    value_objects::Money maximum_amount(10000.0, "USD");
+    shared_kernel::Money maximum_amount(10000.0, "USD");
     services::PaymentAuthorizationService service(&fraud_detection, maximum_amount);
-    value_objects::Money amount(15000.0, "USD");  // Exceeds limit
+    shared_kernel::Money amount(15000.0, "USD");  // Exceeds limit
 
     auto result = service.Authorize(amount, "MERCH-001");
 
     ASSERT_FALSE(result.is_authorized);
-    ASSERT_EQ(result.status, value_objects::PaymentStatus::Declined);
+    ASSERT_EQ(result.status, shared_kernel::PaymentStatus::Declined);
     ASSERT_TRUE(result.decline_reason.has_value());
     ASSERT_NE(result.decline_reason->find("exceeds maximum"), std::string::npos);
 }
