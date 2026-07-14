@@ -6,7 +6,7 @@ This is a **fully compilable** example implementing the architectural patterns d
 
 ```
 Logos.Payment/
-|-- Logos.Payment.Core/                    # Core Unit (AP-002)
+|-- Logos.Payment.Service.Core/                    # Core Unit (AP-002)
 |   |-- Domain/
 |   |   |-- Entities/
 |   |   |   `-- Payment.cs
@@ -26,11 +26,11 @@ Logos.Payment/
 |           |-- AuthorizePaymentUseCase.cs
 |           `-- GetPaymentUseCase.cs
 |
-|-- Logos.Payment.Infrastructure.InMemory/ # Infrastructure Unit (capability impls)
+|-- Logos.Payment.Service.Infrastructure.InMemory/ # Infrastructure Unit (capability impls)
 |   |-- InMemoryPaymentRepository.cs
 |   `-- SimpleFraudDetectionService.cs
 |
-|-- Logos.Payment.HttpHost/                # HTTP Host Unit (AP-003)
+|-- Logos.Payment.Service.HttpHost/                # HTTP Host Unit (AP-003)
 |   |-- Controllers/
 |   |   `-- PaymentsController.cs
 |   |-- Mappings/
@@ -39,7 +39,7 @@ Logos.Payment/
 |   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-|-- Logos.Payment.MasstransitHost/         # MassTransit Host Unit (AP-003)
+|-- Logos.Payment.Service.MasstransitHost/         # MassTransit Host Unit (AP-003)
 |   |-- Consumers/
 |   |   `-- AuthorizePaymentConsumer.cs
 |   |-- Messages/
@@ -49,7 +49,7 @@ Logos.Payment/
 |   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-`-- Logos.Payment.CliHost/                 # CLI Host Unit (AP-003)
+`-- Logos.Payment.Service.CliHost/                 # CLI Host Unit (AP-003)
     |-- Commands/
     |   |-- AuthorizeCommand.cs
     |   `-- GetPaymentCommand.cs
@@ -96,7 +96,7 @@ dotnet build
 
 ### Run HTTP API
 ```bash
-cd Logos.Payment.HttpHost
+cd Logos.Payment.Service.HttpHost
 dotnet run
 ```
 
@@ -107,13 +107,13 @@ Open your browser to: **http://localhost:5000**
 ### Run CLI
 
 ```bash
-cd Logos.Payment.CliHost
+cd Logos.Payment.Service.CliHost
 dotnet run -- authorize --amount 100.00 --currency USD --merchant MERCH-001
 dotnet run -- get <payment-id>
 dotnet run -- help
 ```
 
-See [Logos.Payment.CliHost/README.md](Logos.Payment.CliHost/README.md) for detailed CLI documentation.
+See [Logos.Payment.Service.CliHost/README.md](Logos.Payment.Service.CliHost/README.md) for detailed CLI documentation.
 
 ### Test the API
 

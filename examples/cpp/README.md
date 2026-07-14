@@ -6,7 +6,7 @@ This is a complete C++ implementation of the payment service following the archi
 
 ```
 examples/cpp/
-??? logos_payment_core/                    # Core Unit (AP-002)
+??? logos_payment_service_core/                    # Core Unit (AP-002)
 ?   ??? domain/                            # Domain layer (business logic)
 ?   ?   ??? services/                      # Stateless business logic
 ?   ?       ??? payment_authorization_service.h/cpp
@@ -27,10 +27,10 @@ examples/cpp/
 ?       ?   ??? get_payment_use_case.h/cpp
 ?       ??? container/                     # Dependency injection
 ?           ??? service_container.h
-??? logos_payment_infrastructure/          # Infrastructure Unit (capability impls)
+??? logos_payment_service_infrastructure/          # Infrastructure Unit (capability impls)
 ?   ??? in_memory_payment_repository.h/cpp
 ?   ??? simple_fraud_detection_service.h/cpp
-??? logos_payment_cli_host/                # CLI Host Unit (AP-003)
+??? logos_payment_service_cli_host/                # CLI Host Unit (AP-003)
     ??? cli_parser.h/cpp
     ??? commands/
     ?   ??? authorize_command.h/cpp
@@ -280,9 +280,9 @@ To add a real database or external fraud detection service:
 
 ### Add a New Use Case
 
-1. Create a new use case in `logos_payment_core/application/use_cases/`
-2. Define contracts in `logos_payment_core/application/contracts/`
-3. Create a CLI command in `logos_payment_cli_host/commands/`
+1. Create a new use case in `logos_payment_service_core/application/use_cases/`
+2. Define contracts in `logos_payment_service_core/application/contracts/`
+3. Create a CLI command in `logos_payment_service_cli_host/commands/`
 4. Wire it up in `main.cpp`
 
 ## References

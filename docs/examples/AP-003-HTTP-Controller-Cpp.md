@@ -28,12 +28,12 @@ This example demonstrates how to add an HTTP controller using Qt's HTTP server t
 ## 2. Project Structure
 
 ```
-logos_payment_core/                     (From AP-002 example)
+logos_payment_service_core/                     (From AP-002 example)
 ├── domain/
 ├── shared_kernel/
 ├── capabilities/
 └── application/
-logos_payment_http_host/                (HTTP incoming)
+logos_payment_service_http_host/                (HTTP incoming)
 ├── controllers/
 │   ├── payments_controller.h
 │   ├── payments_controller.cpp
@@ -53,7 +53,7 @@ logos_payment_http_host/                (HTTP incoming)
 ### 3.1 Payment DTOs
 
 ```cpp
-// logos_payment_http_host/mappings/payment_dto.h
+// logos_payment_service_http_host/mappings/payment_dto.h
 #pragma once
 
 #include <QJsonObject>
@@ -61,7 +61,7 @@ logos_payment_http_host/                (HTTP incoming)
 #include <QDateTime>
 #include <optional>
 
-namespace logos::payment::http_host::mappings {
+namespace logos::payment::service::http_host::mappings {
 
 /// @brief HTTP request for payment authorization
 /// @details Maps to application::contracts::AuthorizePaymentRequest
@@ -117,11 +117,11 @@ struct PaymentDetailsDto {
 ### 3.2 DTO Implementation
 
 ```cpp
-// logos_payment_http_host/mappings/payment_dto.cpp
+// logos_payment_service_http_host/mappings/payment_dto.cpp
 #include "payment_dto.h"
 #include <QJsonValue>
 
-namespace logos::payment::http_host::mappings {
+namespace logos::payment::service::http_host::mappings {
 
 std::optional<AuthorizePaymentDto> AuthorizePaymentDto::FromJson(const QJsonObject& json) {
     if (!json.contains("amount") || !json.contains("currency") || !json.contains("merchantId")) {
@@ -185,7 +185,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 ### 4.1 Controller Header
 
 ```cpp
-// logos_payment_http_host/controllers/payments_controller.h
+// logos_payment_service_http_host/controllers/payments_controller.h
 #pragma once
 
 #include <QHttpServerRequest>
@@ -194,7 +194,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 #include "application/use_cases/authorize_payment_use_case.h"
 #include "application/use_cases/get_payment_use_case.h"
 
-namespace logos::payment::http_host::controllers {
+namespace logos::payment::service::http_host::controllers {
 
 /// @brief HTTP controller for payment operations
 /// @details Handles HTTP requests for payment authorization and retrieval.

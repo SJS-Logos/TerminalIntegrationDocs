@@ -28,7 +28,7 @@ Build succeeded
 
 ### 3. Run the API
 ```bash
-cd Logos.Payment.HttpHost
+cd Logos.Payment.Service.HttpHost
 dotnet run
 ```
 
@@ -125,9 +125,9 @@ PaymentAuthorizationService (Domain)
 ## Project Structure
 
 ```
-Logos.Payment.sln
+Logos.Payment.Service.sln
 |
-|-- Logos.Payment.Core/                    # No Host dependencies
+|-- Logos.Payment.Service.Core/                    # No Host dependencies
 |   |-- Domain/
 |   |   |-- Entities/
 |   |   |   `-- Payment.cs
@@ -147,11 +147,11 @@ Logos.Payment.sln
 |           |-- AuthorizePaymentUseCase.cs
 |           `-- GetPaymentUseCase.cs
 |
-|-- Logos.Payment.Infrastructure.InMemory/ # Depends on: Core
+|-- Logos.Payment.Service.Infrastructure.InMemory/ # Depends on: Core
 |   |-- InMemoryPaymentRepository.cs
 |   `-- SimpleFraudDetectionService.cs
 |
-|-- Logos.Payment.HttpHost/                # Depends on: Core, Infrastructure
+|-- Logos.Payment.Service.HttpHost/                # Depends on: Core, Infrastructure
 |   |-- Controllers/
 |   |   `-- PaymentsController.cs
 |   |-- Mappings/
@@ -160,7 +160,7 @@ Logos.Payment.sln
 |   |   `-- ServiceConfiguration.cs
 |   `-- Program.cs
 |
-`-- Logos.Payment.MasstransitHost/         # Depends on: Core, Infrastructure
+`-- Logos.Payment.Service.MasstransitHost/         # Depends on: Core, Infrastructure
     |-- Messages/
     |   |-- AuthorizePaymentCommand.cs
     |   `-- PaymentAuthorizedEvent.cs
@@ -265,7 +265,7 @@ public IActionResult AuthorizePayment([FromBody] AuthorizePaymentDto request)
 
 ### Modify the Code
 Try changing the fraud detection threshold:
-1. Open `Logos.Payment.Infrastructure.InMemory/SimpleFraudDetectionService.cs`
+1. Open `Logos.Payment.Service.Infrastructure.InMemory/SimpleFraudDetectionService.cs`
 2. Change `amount.GetAmount() > 5000m` to `> 1000m`
 3. Rebuild: `dotnet build`
 4. Test with different amounts

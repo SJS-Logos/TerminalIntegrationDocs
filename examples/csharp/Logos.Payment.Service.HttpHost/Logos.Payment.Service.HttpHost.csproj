@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Logos.Payment.Service.Core\Logos.Payment.Service.Core.csproj" />
+    <ProjectReference Include="..\Logos.Payment.Service.Infrastructure.InMemory\Logos.Payment.Service.Infrastructure.InMemory.csproj" />
+  </ItemGroup>
+
+</Project>

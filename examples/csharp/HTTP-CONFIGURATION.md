@@ -4,7 +4,7 @@ The example API is configured to use **HTTP only** (not HTTPS) for simplicity in
 
 ## Configuration
 
-**File:** `Logos.Payment.HttpHost/appsettings.json`
+**File:** `Logos.Payment.Service.HttpHost/appsettings.json`
 
 ```json
 {
@@ -18,7 +18,7 @@ The example API is configured to use **HTTP only** (not HTTPS) for simplicity in
 }
 ```
 
-**File:** `Logos.Payment.HttpHost/Program.cs`
+**File:** `Logos.Payment.Service.HttpHost/Program.cs`
 
 HTTPS redirection is commented out:
 ```csharp
