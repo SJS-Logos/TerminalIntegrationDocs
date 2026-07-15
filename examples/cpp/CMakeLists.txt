@@ -63,3 +63,36 @@ target_link_libraries(payment_cli PRIVATE
 target_include_directories(payment_cli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# HTTP Host executable (Qt-based, AP-003 Incoming Implementation)
+# Built only when Qt6 with the HttpServer module is available, so the default
+# build (CLI host) remains functional without Qt installed.
+find_package(Qt6 COMPONENTS Core Network HttpServer QUIET)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(payment_http_host
+        logos_payment_service_http_host/main.cpp
+        logos_payment_service_http_host/configuration/http_server.cpp
+        logos_payment_service_http_host/configuration/http_server.h
+        logos_payment_service_http_host/controllers/payments_controller.cpp
+        logos_payment_service_http_host/controllers/payments_controller.h
+        logos_payment_service_http_host/mappings/payment_dto.cpp
+        logos_payment_service_http_host/mappings/payment_dto.h
+    )
+
+    target_link_libraries(payment_http_host PRIVATE
+        logos_payment_service_core
+        logos_payment_service_infrastructure
+        Qt6::Core
+        Qt6::Network
+        Qt6::HttpServer
+    )
+
+    target_include_directories(payment_http_host PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+else()
+    message(STATUS "Qt6 (Core, Network, HttpServer) not found - skipping payment_http_host target.")
+endif()
