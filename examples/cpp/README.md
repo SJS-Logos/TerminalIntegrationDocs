@@ -38,6 +38,16 @@ examples/cpp/
     ??? main.cpp
 ```
 
+## Additional Host Units
+
+Beyond the CLI host shown above, the example includes two more AP-003 incoming
+implementations that share the same Core:
+
+- `logos_payment_service_http_host/` - Qt-based HTTP host (built when Qt6 is available).
+- `logos_payment_service_rabbitmq_host/` - RabbitMQ consumer host, the C++ counterpart
+  of the C# MassTransit example (built when AMQP-CPP, libev, and nlohmann/json are
+  available). See its [README](logos_payment_service_rabbitmq_host/README.md).
+
 ## Key Architectural Features
 
 - **Stateless Domain Services**: Business logic operates on Value Objects without entity classes

@@ -96,3 +96,45 @@ if(Qt6_FOUND)
 else()
     message(STATUS "Qt6 (Core, Network, HttpServer) not found - skipping payment_http_host target.")
 endif()
+
+# RabbitMQ Host executable (AP-003 Incoming Implementation)
+# Mirrors the C# MassTransit consumer example: consumes AuthorizePaymentCommand,
+# invokes the use case, and publishes PaymentAuthorizedEvent.
+#
+# Built only when its dependencies are available, so the default build (CLI
+# host) remains functional without a broker client installed:
+#   - amqpcpp  : AMQP-CPP client library
+#   - ev       : libev event loop (used by AMQP-CPP's TCP handler)
+#   - nlohmann_json : header-only JSON (message serialization)
+find_package(amqpcpp CONFIG QUIET)
+find_package(nlohmann_json CONFIG QUIET)
+find_library(EV_LIBRARY ev)
+
+if(amqpcpp_FOUND AND nlohmann_json_FOUND AND EV_LIBRARY)
+    add_executable(payment_rabbitmq_host
+        logos_payment_service_rabbitmq_host/main.cpp
+        logos_payment_service_rabbitmq_host/messages/authorize_payment_command.h
+        logos_payment_service_rabbitmq_host/messages/payment_authorized_event.h
+        logos_payment_service_rabbitmq_host/mappings/message_mapping.cpp
+        logos_payment_service_rabbitmq_host/mappings/message_mapping.h
+        logos_payment_service_rabbitmq_host/consumers/authorize_payment_consumer.cpp
+        logos_payment_service_rabbitmq_host/consumers/authorize_payment_consumer.h
+        logos_payment_service_rabbitmq_host/configuration/rabbitmq_configuration.h
+        logos_payment_service_rabbitmq_host/configuration/rabbitmq_host.cpp
+        logos_payment_service_rabbitmq_host/configuration/rabbitmq_host.h
+    )
+
+    target_link_libraries(payment_rabbitmq_host PRIVATE
+        logos_payment_service_core
+        logos_payment_service_infrastructure
+        amqpcpp
+        nlohmann_json::nlohmann_json
+        ${EV_LIBRARY}
+    )
+
+    target_include_directories(payment_rabbitmq_host PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+else()
+    message(STATUS "amqpcpp / nlohmann_json / libev not found - skipping payment_rabbitmq_host target.")
+endif()
