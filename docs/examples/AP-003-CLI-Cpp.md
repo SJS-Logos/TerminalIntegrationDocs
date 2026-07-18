@@ -1,4 +1,4 @@
-# CLI Application Example: C++
+# AP-003 Example: Command-Line Interface (C++)
 
 **Version:** 1.0  
 **Status:** Draft  
@@ -11,9 +11,9 @@
 
 This example demonstrates a command-line interface (CLI) that invokes use cases from the [C++ implementation example](AP-002-Implementation-Cpp.md).
 
-> **?? Compilable Example Available**  
+> **Compilable Example Available**  
 > A fully compilable version of this example is available at:  
-> [`examples/cpp/`](../../examples/cpp/)  
+> [`examples/cpp/`](../../examples/cpp/)
 >
 > You can build and run it with:
 > ```bash
@@ -28,7 +28,7 @@ This example demonstrates a command-line interface (CLI) that invokes use cases 
 - Maps arguments to Contract Models
 - Invokes Use Cases synchronously
 - Outputs results to console with proper formatting
-- Thread lifecycle: Parse ? Execute ? Output ? Exit
+- Thread lifecycle: Parse -> Execute -> Output -> Exit
 
 ---
 
@@ -39,15 +39,15 @@ This example demonstrates a command-line interface (CLI) that invokes use cases 
 ```
 logos_payment_service_core/                    (From AP-002 example)
 logos_payment_service_cli_host/
-??? commands/
-?   ??? authorize_command.h/.cpp
-?   ??? get_payment_command.h/.cpp
-??? mappings/
-?   ??? cli_argument_mapping.h/.cpp
-??? configuration/
-?   ??? cli_configuration.h/.cpp
-??? cli_parser.h/.cpp
-??? main.cpp
++-- commands/
+|   +-- authorize_command.h/.cpp
+|   +-- get_payment_command.h/.cpp
++-- mappings/
+|   +-- cli_argument_mapping.h/.cpp
++-- configuration/
+|   +-- cli_configuration.h/.cpp
++-- cli_parser.h/.cpp
++-- main.cpp
 ```
 
 ---
@@ -67,171 +67,14 @@ The `CliParser` class:
 - Collects positional arguments
 - Provides type-safe accessors
 
----
-
-## 4. Authorize Command
-
-The authorize command handles payment authorization requests.
-
-**Header:** `logos_payment_service_cli_host/commands/authorize_command.h`
-
-**Implementation:** `logos_payment_service_cli_host/commands/authorize_command.cpp`
-
-The `AuthorizeCommand` class:
-- Parses CLI arguments (amount, currency, merchant)
-- Creates `Money` from string input
-- Maps to `AuthorizePaymentRequest` contract
-- Invokes `AuthorizePaymentUseCase` synchronously
-- Formats output using `Money::ToString()` for proper display
-- Returns exit code based on authorization result
-
-**Usage Example:**
-```bash
-payment-cli authorize --amount 100.00 --currency USD --merchant MERCH-001
-```
-
-**Output:**
-```
-=== Payment Authorization Result ===
-Payment ID:     PAY-000001
-Authorized:     YES
-Status:         Authorized
-Amount:         100.00 USD
-====================================
-```
-
----
-
-## 5. Get Payment Command
-
-The get payment command retrieves payment details by ID.
-
-**Header:** `logos_payment_service_cli_host/commands/get_payment_command.h`
-
-**Implementation:** `logos_payment_service_cli_host/commands/get_payment_command.cpp`
-
-The `GetPaymentCommand` class:
-- Extracts payment ID from positional argument
-- Invokes `GetPaymentUseCase`
-- Formats payment details for display
-- Uses `Money::ToString()` for amount formatting
-- Handles not-found case
-
-**Usage Example:**
-```bash
-payment-cli get PAY-000001
-```
-
-**Output:**
-```
-=== Payment Details ===
-Payment ID:     PAY-000001
-Amount:         100.00 USD
-Merchant ID:    MERCH-001
-Status:         Authorized
-Created At:     2024-12-07 10:30:45
-=======================
-```
-
----
-
-## 6. Main Entry Point
-
-The main function wires everything together.
-
-**File:** `logos_payment_service_cli_host/main.cpp`
-
-The composition root:
-1. **Parses command line** using `CliParser`
-2. **Loads configuration**
-3. **Creates service container** for dependency injection
-4. **Registers domain services** with configuration
-5. **Creates use cases** with resolved dependencies
-6. **Routes to command handlers** based on command name
-7. **Executes command** and returns exit code
-
----
-
-## 7. Key Implementation Details
-
-### Money Formatting
-
-The CLI uses `Money::ToString()` which provides:
-- Automatic thousands separators (e.g., "1,234.56")
-- Currency code display
-- No double exposure - type-safe formatting
-
-Example:
 ```cpp
-Money amount = Money::FromCents(123456, "USD");
-std::cout << amount.ToString() << "\n";  // Output: "1,234.56 USD"
-```
+// logos_payment_service_cli_host/cli_parser.cpp
+CliParser::CliParser(int argc, char* argv[]) {
+    if (argc < 2) {
+        return;
+    }
 
-### Synchronous Execution
-
-The thread lifecycle is simple:
-1. Parse arguments
-2. Create request contract
-3. Execute use case (synchronous)
-4. Format and display result
-5. Exit process
-
-No async/await, no callbacks, no futures - just straightforward sequential execution.
-
-### Error Handling
-
-- Invalid input: Shows usage message
-- Payment not found: Returns error message and non-zero exit code
-- Parsing errors: Caught and displayed with helpful context
-
----
-
-## 8. Running the Example
-
-See [QUICKSTART.md](../../examples/cpp/QUICKSTART.md) for detailed instructions.
-
-### Build
-```bash
-cd examples/cpp
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
-```
-
-### Run Examples
-
-```bash
-# Show help
-./payment_cli help
-
-# Authorize a payment
-./payment_cli authorize --amount 100.00 --currency USD --merchant MERCH-001
-
-# Test fraud detection (> $5,000)
-./payment_cli authorize --amount 5000.01 --currency USD --merchant MERCH-001
-
-# Get payment details
-./payment_cli get PAY-000001
-```
-
----
-
-## 9. Comparison with C# Web API
-
-| Aspect | C++ CLI | C# Web API |
-|--------|---------|------------|
-| **Entry Point** | Command line | HTTP endpoint |
-| **Request Format** | CLI arguments | JSON body |
-| **Response Format** | Console output | JSON response |
-| **Thread Model** | Parse ? Execute ? Exit | HTTP request ? Execute ? HTTP response |
-| **Use Case Invocation** | Same `AuthorizePaymentUseCase` | Same `AuthorizePaymentUseCase` |
-| **Domain Logic** | Identical | Identical |
-
-Both are thin adapters around the same use cases and domain logic.
-
----
-
-**End of Document**
+    command_ = argv[1];
 
     for (int i = 2; i < argc; ++i) {
         std::string arg = argv[i];
@@ -280,10 +123,24 @@ bool CliParser::IsValid() const {
 
 ## 4. Authorize Command
 
+The authorize command handles payment authorization requests.
+
+**Header:** `logos_payment_service_cli_host/commands/authorize_command.h`
+
+**Implementation:** `logos_payment_service_cli_host/commands/authorize_command.cpp`
+
+The `AuthorizeCommand` class:
+- Parses CLI arguments (amount, currency, merchant)
+- Creates `Money` from string input
+- Maps to `AuthorizePaymentRequest` contract
+- Invokes `AuthorizePaymentUseCase` synchronously
+- Formats output using `Money::ToString()` for proper display
+- Returns exit code based on authorization result
+
 ### 4.1 Command Header
 
 ```cpp
-// logos_payment_service_cli/commands/authorize_command.h
+// logos_payment_service_cli_host/commands/authorize_command.h
 #pragma once
 
 #include "application/use_cases/authorize_payment_use_case.h"
@@ -293,10 +150,10 @@ namespace logos::payment_service::cli::commands {
 
 /// @brief CLI command for authorizing payments
 /// @details Parses CLI arguments and invokes AuthorizePaymentUseCase
-/// 
+///
 /// Usage:
 ///   payment-cli authorize --amount 100.00 --currency USD --merchant MERCH-001
-/// 
+///
 /// @see application::use_cases::AuthorizePaymentUseCase
 class AuthorizeCommand {
 public:
@@ -319,7 +176,7 @@ private:
 ### 4.2 Command Implementation
 
 ```cpp
-// logos_payment_service_cli/commands/authorize_command.cpp
+// logos_payment_service_cli_host/commands/authorize_command.cpp
 #include "authorize_command.h"
 #include "domain/value_objects/money.h"
 #include <iostream>
@@ -358,7 +215,7 @@ int AuthorizeCommand::Execute(const CliParser& parser) {
         return 1;
     }
 
-    // Map CLI arguments ? Contract Model
+    // Map CLI arguments -> Contract Model
     application::contracts::AuthorizePaymentRequest request{
         domain::value_objects::Money(amount, currency),
         merchant_id
@@ -373,7 +230,7 @@ int AuthorizeCommand::Execute(const CliParser& parser) {
     std::cout << "Payment ID:     " << result.id << "\n";
     std::cout << "Authorized:     " << (result.is_authorized ? "YES" : "NO") << "\n";
     std::cout << "Status:         " << PaymentStatusToString(result.status) << "\n";
-    std::cout << "Amount:         " << std::fixed << std::setprecision(2) 
+    std::cout << "Amount:         " << std::fixed << std::setprecision(2)
               << result.amount.GetAmount() << " " << result.amount.GetCurrency() << "\n";
 
     if (result.decline_reason) {
@@ -414,14 +271,42 @@ std::string AuthorizeCommand::PaymentStatusToString(
 } // namespace logos::payment_service::cli::commands
 ```
 
+**Usage Example:**
+```bash
+payment-cli authorize --amount 100.00 --currency USD --merchant MERCH-001
+```
+
+**Output:**
+```
+=== Payment Authorization Result ===
+Payment ID:     PAY-000001
+Authorized:     YES
+Status:         Authorized
+Amount:         100.00 USD
+====================================
+```
+
 ---
 
 ## 5. Get Payment Command
 
+The get payment command retrieves payment details by ID.
+
+**Header:** `logos_payment_service_cli_host/commands/get_payment_command.h`
+
+**Implementation:** `logos_payment_service_cli_host/commands/get_payment_command.cpp`
+
+The `GetPaymentCommand` class:
+- Extracts payment ID from positional argument
+- Invokes `GetPaymentUseCase`
+- Formats payment details for display
+- Uses `Money::ToString()` for amount formatting
+- Handles not-found case
+
 ### 5.1 Command Header
 
 ```cpp
-// logos_payment_service_cli/commands/get_payment_command.h
+// logos_payment_service_cli_host/commands/get_payment_command.h
 #pragma once
 
 #include "application/use_cases/get_payment_use_case.h"
@@ -431,10 +316,10 @@ namespace logos::payment_service::cli::commands {
 
 /// @brief CLI command for retrieving payment details
 /// @details Parses CLI arguments and invokes GetPaymentUseCase
-/// 
+///
 /// Usage:
 ///   payment-cli get <payment-id>
-/// 
+///
 /// @see application::use_cases::GetPaymentUseCase
 class GetPaymentCommand {
 public:
@@ -456,7 +341,7 @@ private:
 ### 5.2 Command Implementation
 
 ```cpp
-// logos_payment_service_cli/commands/get_payment_command.cpp
+// logos_payment_service_cli_host/commands/get_payment_command.cpp
 #include "get_payment_command.h"
 #include <iostream>
 #include <iomanip>
@@ -542,12 +427,41 @@ std::string GetPaymentCommand::PaymentStatusToString(
 } // namespace logos::payment_service::cli::commands
 ```
 
+**Usage Example:**
+```bash
+payment-cli get PAY-000001
+```
+
+**Output:**
+```
+=== Payment Details ===
+Payment ID:     PAY-000001
+Amount:         100.00 USD
+Merchant ID:    MERCH-001
+Status:         Authorized
+Created At:     2024-12-07 10:30:45
+=======================
+```
+
 ---
 
-## 6. Main CLI Entry Point
+## 6. Main Entry Point
+
+The main function wires everything together.
+
+**File:** `logos_payment_service_cli_host/main.cpp`
+
+The composition root:
+1. **Parses command line** using `CliParser`
+2. **Loads configuration**
+3. **Creates service container** for dependency injection
+4. **Registers domain services** with configuration
+5. **Creates use cases** with resolved dependencies
+6. **Routes to command handlers** based on command name
+7. **Executes command** and returns exit code
 
 ```cpp
-// logos_payment_service_cli/main.cpp
+// logos_payment_service_cli_host/main.cpp
 #include <iostream>
 #include <memory>
 #include "cli_parser.h"
@@ -641,25 +555,25 @@ int main(int argc, char* argv[]) {
 
 ```cmake
 # CLI application
-add_executable(logos_payment_service_cli
+add_executable(logos_payment_service_cli_host
     main.cpp
     cli_parser.cpp
     commands/authorize_command.cpp
     commands/get_payment_command.cpp
 )
 
-target_link_libraries(logos_payment_service_cli
+target_link_libraries(logos_payment_service_cli_host
     logos_payment_service_application
     logos_payment_service_domain
     logos_payment_service_adapters
 )
 
-target_include_directories(logos_payment_service_cli PRIVATE
+target_include_directories(logos_payment_service_cli_host PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Install
-install(TARGETS logos_payment_service_cli
+install(TARGETS logos_payment_service_cli_host
     RUNTIME DESTINATION bin
     RENAME payment-cli
 )
@@ -667,9 +581,43 @@ install(TARGETS logos_payment_service_cli
 
 ---
 
-## 8. Usage Examples
+## 8. Key Implementation Details
 
-### 8.1 Authorize a Payment
+### 8.1 Money Formatting
+
+The CLI uses `Money::ToString()` which provides:
+- Automatic thousands separators (e.g., "1,234.56")
+- Currency code display
+- No double exposure - type-safe formatting
+
+Example:
+```cpp
+Money amount = Money::FromCents(123456, "USD");
+std::cout << amount.ToString() << "\n";  // Output: "1,234.56 USD"
+```
+
+### 8.2 Synchronous Execution
+
+The thread lifecycle is simple:
+1. Parse arguments
+2. Create request contract
+3. Execute use case (synchronous)
+4. Format and display result
+5. Exit process
+
+No async/await, no callbacks, no futures - just straightforward sequential execution.
+
+### 8.3 Error Handling
+
+- Invalid input: Shows usage message
+- Payment not found: Returns error message and non-zero exit code
+- Parsing errors: Caught and displayed with helpful context
+
+---
+
+## 9. Usage Examples
+
+### 9.1 Authorize a Payment
 
 ```bash
 $ payment-cli authorize --amount 100.00 --currency USD --merchant MERCH-001
@@ -682,7 +630,7 @@ Amount:         100.00 USD
 ====================================
 ```
 
-### 8.2 Get Payment Details
+### 9.2 Get Payment Details
 
 ```bash
 $ payment-cli get 550e8400-e29b-41d4-a716-446655440000
@@ -696,7 +644,7 @@ Created At:     2024-01-15 10:30:45
 =======================
 ```
 
-### 8.3 Authorization Declined
+### 9.3 Authorization Declined
 
 ```bash
 $ payment-cli authorize --amount 15000.00 --currency USD --merchant MERCH-001
@@ -710,7 +658,7 @@ Decline Reason: Amount exceeds maximum limit
 ====================================
 ```
 
-### 8.4 Help
+### 9.4 Help
 
 ```bash
 $ payment-cli help
@@ -744,40 +692,40 @@ Example:
 
 ---
 
-## 9. Key Principles
+## 10. Key Principles
 
-### 9.1 Thread Lifecycle
+### 10.1 Thread Lifecycle
 
 ```
 1. Parse command-line arguments
-   ?
+   |
 2. Setup service container
-   ?
-3. Map CLI args ? Contract Model
-   ?
+   |
+3. Map CLI args -> Contract Model
+   |
 4. Invoke Use Case (synchronous)
-   ?
+   |
 5. Format and output result
-   ?
+   |
 6. Exit (return code)
 ```
 
-The process is **short-lived**: parse ? execute ? output ? exit.
+The process is **short-lived**: parse -> execute -> output -> exit.
 
-### 9.2 No Business Logic in CLI
+### 10.2 No Business Logic in CLI
 
 The CLI layer:
-- ? Parses command-line arguments
-- ? Maps arguments to Contract Models
-- ? Formats output for console
-- ? Handles CLI-specific concerns (help text, exit codes)
-- ? Does NOT make business decisions
-- ? Does NOT contain business rules
-- ? Does NOT orchestrate operations
+- Parses command-line arguments
+- Maps arguments to Contract Models
+- Formats output for console
+- Handles CLI-specific concerns (help text, exit codes)
+- Does NOT make business decisions
+- Does NOT contain business rules
+- Does NOT orchestrate operations
 
 All business logic is in the Use Case and Domain.
 
-### 9.3 Command Pattern
+### 10.3 Command Pattern
 
 Each CLI command:
 - Takes a Use Case in constructor (non-owning pointer)
@@ -785,7 +733,7 @@ Each CLI command:
 - Returns exit code (0 = success, non-zero = error)
 - Provides `PrintUsage()` static method
 
-### 9.4 Separation of Concerns
+### 10.4 Separation of Concerns
 
 - **CLI Arguments** - Command-line format (`--amount 100`)
 - **Contract Models** - Application boundary
@@ -795,7 +743,7 @@ The command maps between CLI arguments and Contract Models.
 
 ---
 
-## 10. Testing
+## 11. Testing
 
 ```cpp
 // Test authorize command
@@ -824,9 +772,9 @@ TEST(AuthorizeCommandTest, ValidRequest_ReturnsSuccess) {
     cli::commands::AuthorizeCommand command(use_case.get());
 
     // Create parser from simulated arguments
-    const char* args[] = {"payment-cli", "authorize", 
-                          "--amount", "100", 
-                          "--currency", "USD", 
+    const char* args[] = {"payment-cli", "authorize",
+                          "--amount", "100",
+                          "--currency", "USD",
                           "--merchant", "MERCH-001"};
     cli::CliParser parser(8, const_cast<char**>(args));
 
@@ -840,23 +788,26 @@ TEST(AuthorizeCommandTest, ValidRequest_ReturnsSuccess) {
 
 ---
 
-## 11. Summary
+## 12. Summary
 
 This example demonstrates:
 
 1. **CLI argument parsing** - Simple but effective parser
 2. **Command pattern** - Each command is a separate class
 3. **Use Case invocation** - Direct, synchronous calls
-4. **Thread lifecycle** - Short-lived: parse ? execute ? output ? exit
-5. **Separation**: CLI args ? Contract Models ? Value Objects
+4. **Thread lifecycle** - Short-lived: parse -> execute -> output -> exit
+5. **Separation**: CLI args -> Contract Models -> Value Objects
 6. **No business logic** - CLI only parses, invokes, and formats
 7. **Standard Unix conventions** - Exit codes, help text, argument format
 
-The pattern is simple: parse arguments ? map to contract ? invoke use case ? format output ? exit.
+The pattern is simple: parse arguments -> map to contract -> invoke use case -> format output -> exit.
 
 ---
 
 **See Also:**
 - [C++ Implementation (AP-002)](AP-002-Implementation-Cpp.md) - Base implementation this builds on
+- [C# CLI Host Example](AP-003-CLI-CSharp.md) - C# equivalent
 - [C++ HTTP Controller Example](AP-003-HTTP-Controller-Cpp.md) - HTTP equivalent
 - AP-003 - Incoming Implementations (specification)
+
+**End of Document**

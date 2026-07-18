@@ -170,7 +170,18 @@ Use 4-space indentation for short inline definitions like key patterns or endpoi
 
 ---
 
-## 9. Section Ordering Convention
+## 9. Date Format
+
+All dates MUST be written in ISO 8601 format: `YYYY-MM-DD` (for example, `2026-07-18`).
+
+- ISO 8601 is unambiguous, internationally standardised (also the Danish standard DS/ISO 8601), and text-sortable.
+- Do NOT use locale-specific formats such as `DD/MM-YYYY`, `DD-MM-YYYY`, or `MM/DD/YYYY`, as these are ambiguous across readers.
+- This applies to all metadata fields (for example, `Created:`) and to dates in running text.
+- Where a friendlier form is desired in running text, the month MAY be spelled out (for example, `18 July 2026`) to remove ambiguity. Numeric dates MUST remain ISO 8601.
+
+---
+
+## 10. Section Ordering Convention
 
 The following order is RECOMMENDED. Not all sections apply to every RFC:
 
@@ -191,7 +202,7 @@ The following order is RECOMMENDED. Not all sections apply to every RFC:
 
 ---
 
-## 10. Definitions and Blockquotes
+## 11. Definitions and Blockquotes
 
 Use blockquotes (`>`) for formal definitions:
 
@@ -203,7 +214,7 @@ An application is:
 
 ---
 
-## 11. Checklist
+## 12. Checklist
 
 Before submitting an RFC, verify:
 
@@ -215,4 +226,5 @@ Before submitting an RFC, verify:
 - [ ] Normative language section declares bold keywords
 - [ ] List items end with trailing double-spaces
 - [ ] Code blocks have language identifiers
+- [ ] Dates use ISO 8601 (`YYYY-MM-DD`)
 - [ ] No unicode decorative characters

@@ -1,6 +1,6 @@
 # HTTP Controller Example: C#
 
-**Version:** 1.0  
+**Version:** 0.1  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
 **Builds on:** [AP-002 Implementation - C#](AP-002-Implementation-CSharp.md)
@@ -47,16 +47,6 @@ The controller demonstrates:
 - **Thin translation layer** - Only mapping between HTTP and domain
 - **Direct invocation** - Use cases injected via constructor
 - **Synchronous execution** - Thread: Request -> Execute -> Response -> End
-            MerchantId = result.MerchantId,
-            Status = result.Status.ToString(),
-            CreatedAt = result.CreatedAt,
-            DeclineReason = result.DeclineReason
-        };
-
-        return Ok(response);
-    }
-}
-```
 
 ---
 
@@ -87,13 +77,9 @@ The Program.cs configures Swagger with:
 - XML documentation comments
 - Endpoint metadata
 
-To enable XML docs, each project can set `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in its .csproj file
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
-</Project>
-```
+To enable XML docs, each project can set `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in its .csproj file.
 
-### 3.6 Result in Swagger UI
+### 4.1 Result in Swagger UI
 
 The OpenAPI/Swagger documentation will show:
 
@@ -106,7 +92,7 @@ This HTTP DTO maps to AuthorizePaymentRequest.
 
 Domain Contract: AuthorizePaymentRequest
 Value Objects Used:
-� Money - Amount and Currency
+- Money - Amount and Currency
 
 Properties:
   amount (number): Amount in the specified currency
@@ -118,15 +104,15 @@ Properties:
 ```
 
 This approach:
-- ? Documents the **mapping** between HTTP and Domain
-- ? Includes **domain contract references** visible in Swagger
-- ? Shows **Value Objects used**
-- ? Provides **single source of truth** (domain documentation)
-- ? Makes API documentation **traceable** to domain concepts
+- Documents the **mapping** between HTTP and Domain
+- Includes **domain contract references** visible in Swagger
+- Shows **Value Objects used**
+- Provides **single source of truth** (domain documentation)
+- Makes API documentation **traceable** to domain concepts
 
 ---
 
-## 4. Program.cs Configuration
+## 5. Program.cs Configuration
 
 ```csharp
 // Logos.Payment.Service.HttpHost/Program.cs
@@ -179,7 +165,7 @@ app.Run();
 
 ---
 
-## 5. Project Structure
+## 6. Project Structure
 
 ```
 Logos.Payment.Service.Core/                    (From AP-002 example)
@@ -201,9 +187,9 @@ Logos.Payment.Service.HttpHost/                (HTTP incoming)
 
 ---
 
-## 6. Key Principles
+## 7. Key Principles
 
-### 6.1 Separation of Concerns
+### 7.1 Separation of Concerns
 
 - **HTTP DTOs** (`AuthorizePaymentDto`) - Transport format (JSON over HTTP)
 - **Contract Models** (`AuthorizePaymentRequest`) - Application boundary
@@ -211,39 +197,39 @@ Logos.Payment.Service.HttpHost/                (HTTP incoming)
 
 The controller maps between HTTP DTOs and Contract Models.
 
-### 6.2 Thread Lifecycle
+### 7.2 Thread Lifecycle
 
 ```
 1. HTTP Request arrives
-   ?
+   |
 2. Controller receives request
-   ?
-3. Map HTTP DTO ? Contract Model
-   ?
+   |
+3. Map HTTP DTO -> Contract Model
+   |
 4. Invoke Use Case (synchronous)
-   ?
-5. Map result ? HTTP DTO
-   ?
+   |
+5. Map result -> HTTP DTO
+   |
 6. Return HTTP Response
-   ?
+   |
 7. Thread ends
 ```
 
 The thread is **short-lived** and handles a single request from start to finish.
 
-### 6.3 No Business Logic in Controller
+### 7.3 No Business Logic in Controller
 
 The controller:
-- ? Maps between transport and application models
-- ? Returns appropriate HTTP status codes
-- ? Handles HTTP-specific concerns (routing, status)
-- ? Does NOT make business decisions
-- ? Does NOT contain business rules
-- ? Does NOT orchestrate operations
+- Maps between transport and application models
+- Returns appropriate HTTP status codes
+- Handles HTTP-specific concerns (routing, status)
+- Does NOT make business decisions
+- Does NOT contain business rules
+- Does NOT orchestrate operations
 
 All business logic is in the Use Case and Domain.
 
-### 6.4 Direct Dependency Injection
+### 7.4 Direct Dependency Injection
 
 The controller receives use cases through constructor injection:
 ```csharp
@@ -252,11 +238,11 @@ public PaymentsController(
     GetPaymentUseCase getPaymentUseCase)
 ```
 
-No mediator, command bus, or additional abstraction layer. The controller depends directly on the concrete use case classes (as per AP-003 �5.2).
+No mediator, command bus, or additional abstraction layer. The controller depends directly on the concrete use case classes (as per AP-003 §5.2).
 
 ---
 
-## 5. Running the Example
+## 8. Running the Example
 
 To run the compilable example:
 
@@ -269,7 +255,7 @@ Navigate to `http://localhost:5000` to see the Swagger UI and test the endpoints
 
 ---
 
-## 6. Example Request/Response
+## 9. Example Request/Response
 
 ### Authorization Request
 
@@ -316,7 +302,7 @@ Navigate to `http://localhost:5000` to see the Swagger UI and test the endpoints
 
 ---
 
-## 7. Key Architectural Points
+## 10. Key Architectural Points
 
 This example demonstrates:
 

@@ -1,6 +1,6 @@
 # AP-002 Implementation Guide: C#
 
-**Version:** 1.0  
+**Version:** 0.1  
 **Status:** Draft  
 **Applies to:** AP-002, AP-004  
 
@@ -64,7 +64,9 @@ As defined by AP-002, this Core is a single Unit. `Application/` may reference `
 
 ---
 
-# 3. Domain Layer
+# 3. Core Layer
+
+The Core comprises four peer folders — `Domain/`, `SharedKernel/`, `Capabilities/`, and `Application/` — as defined in AP-002 §5.1. Shared Kernel and Capabilities are peers of the Domain, not part of it.
 
 ## 3.1 Shared Kernel
 
@@ -82,13 +84,13 @@ The `Money` value object:
 
 The `PaymentStatus` enum represents the authorization state.
 
-**File:** `Logos.Payment.Service.Core/Domain/Entities/Payment.cs`
+**File:** `Logos.Payment.Service.Core/SharedKernel/PaymentRecord.cs`
 
-The `Payment` entity represents a payment with its state transitions.
+The `PaymentRecord` record represents a complete payment record with identity assigned by the repository. (For when a mutable `Payment` entity becomes appropriate, see §9.)
 
 ## 3.2 Domain Services
 
-Domain services contain business logic and work with entities and value objects.
+Domain services contain business logic and work with Value Objects. They are stateless.
 
 **File:** `Logos.Payment.Service.Core/Domain/Services/PaymentAuthorizationService.cs`
 
@@ -96,55 +98,7 @@ The `PaymentAuthorizationService`:
 - Stateless service with business logic
 - Validates payment amount against maximum
 - Checks for fraud via `IFraudDetectionService`
-- Modifies payment entity state (authorize or decline)
-    {
-        if (!amount.IsPositive())
-        {
-            return new PaymentAuthorizationResult(
-                IsAuthorized: false,
-                Status: PaymentStatus.Declined,
-                DeclineReason: "Amount must be positive");
-        }
-
-        // Business rule: Check for fraud
-        var isFraudulent = fraudDetection.IsFraudulent(
-            amount.Amount,
-            amount.Currency,
-            merchantId);
-
-        if (isFraudulent)
-        {
-            return new PaymentAuthorizationResult(
-                IsAuthorized: false,
-                Status: PaymentStatus.Declined,
-                DeclineReason: "Suspected fraud");
-        }
-
-        // Business rule: Amount limits
-        if (amount.Currency == maximumAmount.Currency && 
-            amount.IsGreaterThan(maximumAmount))
-        {
-            return new PaymentAuthorizationResult(
-                IsAuthorized: false,
-                Status: PaymentStatus.Declined,
-                DeclineReason: "Amount exceeds maximum limit");
-        }
-
-        return new PaymentAuthorizationResult(
-            IsAuthorized: true,
-            Status: PaymentStatus.Authorized,
-            DeclineReason: null);
-    }
-}
-
-/// <summary>
-/// Value Object representing the result of authorization business logic.
-/// </summary>
-public record PaymentAuthorizationResult(
-    bool IsAuthorized,
-    PaymentStatus Status,
-    string? DeclineReason);
-```
+- Returns a `PaymentAuthorizationResult`; state persistence is handled by the repository
 
 ## 3.3 Capabilities (Domain Abstractions)
 
@@ -353,5 +307,6 @@ For many services, the stateless approach with Value Objects and external persis
 # 10. References
 
 - AP-001: Architectural Principles
-- AP-002: Service Structure  
+- AP-002: Service Structure
 - AP-004: Domain (§7 Value Objects)
+- AP-005: Domain Capabilities

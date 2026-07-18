@@ -1,6 +1,6 @@
 # AP-003 Implementation Guide: MassTransit Consumer - C#
 
-**Version:** 1.0  
+**Version:** 0.1  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
 **Builds on:** [AP-002 Implementation - C#](AP-002-Implementation-CSharp.md)

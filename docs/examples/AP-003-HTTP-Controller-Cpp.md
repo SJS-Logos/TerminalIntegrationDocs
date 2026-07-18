@@ -1,6 +1,7 @@
 # HTTP Controller Example: C++
+# HTTP Controller Example: C++
 
-**Version:** 1.0  
+**Version:** 0.1  
 **Status:** Draft  
 **Applies to:** AP-003 (Incoming Implementations)  
 **Builds on:** [AP-002 Implementation - C++](AP-002-Implementation-Cpp.md)
@@ -16,7 +17,7 @@ This example demonstrates how to add an HTTP controller using Qt's HTTP server t
 - Maps HTTP payload to Contract Model (Request)
 - Invokes Use Case synchronously
 - Maps result to HTTP response (JSON)
-- Thread lifecycle: Request ? Execute ? Response ? End
+- Thread lifecycle: Request -> Execute -> Response -> End
 
 **Documentation Approach:**
 - Domain and Application have Doxygen comments
@@ -200,7 +201,7 @@ namespace logos::payment::service::http_host::controllers {
 /// @details Handles HTTP requests for payment authorization and retrieval.
 ///          Maps HTTP DTOs to domain contracts and invokes use cases.
 /// 
-/// Thread lifecycle: Request ? Map DTO ? Invoke Use Case ? Map Result ? Response ? End
+/// Thread lifecycle: Request -> Map DTO -> Invoke Use Case -> Map Result -> Response -> End
 /// 
 /// @note This controller contains NO business logic. All business decisions
 ///       are made in the domain layer.
@@ -293,7 +294,7 @@ QHttpServerResponse PaymentsController::AuthorizePayment(const QHttpServerReques
     }
     auto dto = *dto_opt;
 
-    // Map HTTP DTO ? Contract Model (using shared Value Objects)
+    // Map HTTP DTO -> Contract Model (using shared Value Objects)
     application::contracts::AuthorizePaymentRequest use_case_request{
         domain::value_objects::Money(dto.amount, dto.currency.toStdString()),
         dto.merchant_id.toStdString()
@@ -302,7 +303,7 @@ QHttpServerResponse PaymentsController::AuthorizePayment(const QHttpServerReques
     // Execute use case (synchronous, short-lived thread)
     auto result = authorize_use_case_->Execute(use_case_request);
 
-    // Map result ? HTTP DTO
+    // Map result -> HTTP DTO
     models::PaymentAuthorizationDto response_dto;
     response_dto.payment_id = QString::fromStdString(result.id);
     response_dto.is_authorized = result.is_authorized;
@@ -332,7 +333,7 @@ QHttpServerResponse PaymentsController::GetPayment(const QString& payment_id) {
                                    QHttpServerResponse::StatusCode::NotFound);
     }
 
-    // Map result ? HTTP DTO
+    // Map result -> HTTP DTO
     models::PaymentDetailsDto response_dto;
     response_dto.payment_id = QString::fromStdString(result->id);
     response_dto.amount = result->amount.GetAmount();
@@ -542,7 +543,7 @@ HTML_EXTRA_FILES       = api_mapping.md
 
 ### 7.2 API Mapping Documentation
 
-Create a separate markdown file documenting the HTTP ? Domain mapping:
+Create a separate markdown file documenting the HTTP -> Domain mapping:
 
 ```markdown
 <!-- api_mapping.md -->
@@ -572,7 +573,7 @@ Create a separate markdown file documenting the HTTP ? Domain mapping:
 | status         | string          | PaymentStatus enum   |
 | amount         | double          | Money::GetAmount()   |
 | currency       | string          | Money::GetCurrency() |
-| declineReason  | string│         | decline_reason       |
+| declineReason  | string          | decline_reason       |
 
 ## GET /api/payments/{id}
 
@@ -597,8 +598,8 @@ Use `@see` and `@details` tags to create links:
 ///          to the domain contract before invoking the use case.
 /// 
 /// **Domain Contract Mapping:**
-/// - Amount + Currency ? domain::value_objects::Money
-/// - MerchantId ? string (domain identifier)
+/// - Amount + Currency -> domain::value_objects::Money
+/// - MerchantId -> string (domain identifier)
 /// 
 /// @see application::contracts::AuthorizePaymentRequest
 /// @see domain::value_objects::Money
@@ -708,40 +709,40 @@ The controller maps between HTTP DTOs and Contract Models.
 
 ```
 1. Qt receives HTTP request
-   ?
+   |
 2. Controller method invoked
-   ?
-3. Parse JSON ? HTTP DTO
-   ?
-4. Map HTTP DTO ? Contract Model
-   ?
+   |
+3. Parse JSON -> HTTP DTO
+   |
+4. Map HTTP DTO -> Contract Model
+   |
 5. Invoke Use Case (synchronous)
-   ?
-6. Map result ? HTTP DTO
-   ?
+   |
+6. Map result -> HTTP DTO
+   |
 7. Serialize to JSON
-   ?
+   |
 8. Return HTTP Response
-   ?
+   |
 9. Thread ends
 ```
 
 ### 10.3 No Business Logic in Controller
 
 The controller:
-- ? Parses JSON
-- ? Maps between transport and application models
-- ? Returns appropriate HTTP status codes
-- ? Handles HTTP-specific concerns
-- ? Does NOT make business decisions
-- ? Does NOT contain business rules
-- ? Does NOT orchestrate operations
+- Parses JSON
+- Maps between transport and application models
+- Returns appropriate HTTP status codes
+- Handles HTTP-specific concerns
+- Does NOT make business decisions
+- Does NOT contain business rules
+- Does NOT orchestrate operations
 
 ### 10.4 Documentation Approach
 
 Since C++ lacks runtime reflection for automatic API documentation:
 - **Doxygen comments** in code with `@see` cross-references
-- **Separate mapping document** (markdown) explains HTTP ? Domain
+- **Separate mapping document** (markdown) explains HTTP -> Domain
 - **Generated HTML docs** with clickable links between layers
 - **Manual but traceable** - developers can follow links to domain
 
@@ -752,14 +753,14 @@ Since C++ lacks runtime reflection for automatic API documentation:
 This example demonstrates:
 
 1. **Qt HTTP server** - Lightweight HTTP handling
-2. **Controller responsibility**: Map HTTP ? Contract Models only
+2. **Controller responsibility**: Map HTTP -> Contract Models only
 3. **Use Case invocation**: Direct, synchronous call
 4. **Thread lifecycle**: Short-lived request-response
-5. **Separation**: HTTP DTOs ? Contract Models ? Value Objects
+5. **Separation**: HTTP DTOs -> Contract Models -> Value Objects
 6. **Direct DI**: Service container provides dependencies
 7. **Documentation**: Doxygen + manual mapping document
 
-The pattern is simple: receive request ? parse JSON ? map to contract ? invoke use case ? map to JSON ? return response.
+The pattern is simple: receive request -> parse JSON -> map to contract -> invoke use case -> map to JSON -> return response.
 
 ---
 
