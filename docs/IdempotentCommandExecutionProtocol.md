@@ -1,6 +1,6 @@
 # RFC: Idempotent Command Execution Protocol
 
-**Version:** 1.0  
+**Version:** 0.1  
 **Status:** Draft  
 
 ---
@@ -22,7 +22,9 @@ This specification explicitly defines a model that does not require a dedicated 
 
 # 2. Normative Language
 
-The key words **MUST**, **MUST NOT**, **SHALL**, **SHOULD**, and **MAY** are to be interpreted as described in RFC 2119.
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in RFC 2119 and RFC 8174, and only when they appear in all capitals.
+
+For consistency, this specification uses **MUST**/**MUST NOT** for absolute requirements rather than the equivalent **SHALL**/**SHALL NOT**.
 
 ---
 
@@ -64,7 +66,7 @@ It contains:
 
 ## 4.2 Execution State
 
-An Execution Record SHALL transition through the following states:
+An Execution Record MUST transition through the following states:
 
 - Pending  
 - Running  
@@ -97,7 +99,7 @@ It MUST be propagated across service boundaries and MUST NOT influence execution
 
 ## 5.1 Idempotency-Key
 
-The client SHALL include an Idempotency-Key in all non-idempotent requests (POST and PATCH).
+The client MUST include an Idempotency-Key in all non-idempotent requests (POST and PATCH).
 
 > **Note on method semantics:** Per HTTP semantics ([RFC 9110 §9.2.2][rfc9110-idempotent]), POST and PATCH are not idempotent. The Idempotency-Key header is therefore intended to add idempotency to these methods — most notably repeated POST requests. See MDN ([Idempotency-Key][mdn-idempotency-key]) for the general header semantics.
 
@@ -124,12 +126,16 @@ If present:
 
 ## 6.1 Synchronous Execution
 
-If a command completes within the server’s response budget:
+If a command completes within the server's response budget, the server returns a terminal success response and includes the final result in the body:
 
 ```http
-200 OK
-or
-201 Created
+HTTP/1.1 200 OK
+```
+
+or, when a new resource is created:
+
+```http
+HTTP/1.1 201 Created
 ```
 
 No Execution Record retrieval is required by the client.
@@ -164,13 +170,15 @@ If a request is received with an existing Idempotency-Key:
 - The server MUST return the current Execution Record state  
 - The server MUST ensure response consistency across retries  
 
+While the Execution Record is still `Pending` or `Running`, the server MUST return `202 Accepted` for the replayed request. Once the record reaches `Completed` or `Failed`, the server MUST return the terminal response.
+
 ---
 
 ## 7.2 Request Payload Consistency
 
 If a request is received with an existing Idempotency-Key but a different payload:
 
-- The server MUST reject the request  
+- The server MUST reject the request with `422 Unprocessable Content` (a `409 Conflict` MAY be used where more appropriate)  
 - The server MUST NOT modify existing Execution Records  
 
 ---
@@ -181,8 +189,8 @@ If a request is received with an existing Idempotency-Key but a different payloa
 
 If a client loses the response to a request:
 
-- The client SHALL retry the original request with the same Idempotency-Key  
-- The server SHALL return the existing Execution Record state  
+- The client MUST retry the original request with the same Idempotency-Key  
+- The server MUST return the existing Execution Record state  
 
 ---
 
@@ -203,7 +211,7 @@ The client MUST treat the following as ambiguous outcomes:
 - connection loss  
 - missing response  
 
-In all cases, the client SHALL retry using the same Idempotency-Key.
+In all cases, the client MUST retry using the same Idempotency-Key.
 
 ---
 
@@ -211,7 +219,7 @@ In all cases, the client SHALL retry using the same Idempotency-Key.
 
 This specification does not define a dedicated status endpoint.
 
-Instead, clients SHALL use the idempotent POST request itself as the mechanism for status retrieval.
+Instead, clients MUST use the idempotent POST request itself as the mechanism for status retrieval.
 
 ### Behavior
 
@@ -241,6 +249,16 @@ Ephemeral storage (e.g. caches) MAY be used for optimization but:
 - MUST NOT be the source of truth for execution state  
 - MUST NOT determine idempotency correctness  
 - MUST NOT be required for recovery  
+
+---
+
+## 10.3 Idempotency-Key Retention
+
+The server MUST retain Execution Records for a defined retention window sufficient to cover the client's maximum expected retry period.
+
+- The retention window SHOULD be published or otherwise made known to clients  
+- After the retention window expires, the server MAY discard the Execution Record  
+- A request replayed with an expired Idempotency-Key MAY be treated as a new command execution  
 
 ---
 
@@ -332,11 +350,13 @@ All state retrieval is performed through idempotent request replay.
 - [IETF HTTPAPI — The Idempotency-Key HTTP Header Field][ietf-idempotency-key]  
 - [RFC 9110 — HTTP Semantics, §9.2.2 Idempotent Methods][rfc9110-idempotent]  
 - [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels][rfc2119]  
+- [RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words][rfc8174]  
 
 [mdn-idempotency-key]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
 [mdn-idempotent]: https://developer.mozilla.org/en-US/docs/Glossary/Idempotent
 [ietf-idempotency-key]: https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 [rfc9110-idempotent]: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
+[rfc8174]: https://www.rfc-editor.org/rfc/rfc8174
 
 ---
