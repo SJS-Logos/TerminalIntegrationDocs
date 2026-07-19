@@ -1,4 +1,4 @@
-# AP-003 Example: Command-Line Interface (C++)
+# CLI Host Example - C++
 
 **Version:** 1.0  
 **Status:** Draft  
@@ -806,8 +806,8 @@ The pattern is simple: parse arguments -> map to contract -> invoke use case -> 
 
 **See Also:**
 - [C++ Implementation (AP-002)](AP-002-Implementation-Cpp.md) - Base implementation this builds on
-- [C# CLI Host Example](AP-003-CLI-CSharp.md) - C# equivalent
-- [C++ HTTP Controller Example](AP-003-HTTP-Controller-Cpp.md) - HTTP equivalent
+- [CLI Host Example - C#](AP-003-CLI-CSharp.md) - C# equivalent
+- [HTTP Host Example - C++](AP-003-HTTP-Controller-Cpp.md) - HTTP equivalent
 - AP-003 - Incoming Implementations (specification)
 
 **End of Document**

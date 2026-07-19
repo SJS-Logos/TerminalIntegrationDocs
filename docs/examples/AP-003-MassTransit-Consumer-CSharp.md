@@ -1,4 +1,4 @@
-# AP-003 Implementation Guide: MassTransit Consumer - C#
+# RabbitMQ Host Example - C#
 
 **Version:** 0.1  
 **Status:** Draft  
@@ -176,7 +176,8 @@ The pattern is simple: **receive message -> map to contract -> invoke use case -
 
 **See Also:**
 - [C# Implementation (AP-002)](AP-002-Implementation-CSharp.md) - Base implementation
-- [HTTP Controller Example](AP-003-HTTP-Controller-CSharp.md) - Synchronous incoming implementation
+- [HTTP Host Example - C#](AP-003-HTTP-Controller-CSharp.md) - Synchronous incoming implementation
+- [RabbitMQ Host Example - C++](AP-003-RabbitMQ-Consumer-Cpp.md) - C++ equivalent
 - [Compilable Example README](../../examples/csharp/README.md) - Full build instructions
 - AP-003 - Incoming Implementations (specification)
 - AP-007 - Adapter Implementations (specification)

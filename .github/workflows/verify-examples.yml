@@ -1,4 +1,5 @@
 name: Verify Compilable Examples
+name: Verify Examples
 
 on:
   push:
@@ -36,44 +37,77 @@ jobs:
     - name: Verify all projects built
       working-directory: examples/csharp
       run: |
-        echo "? Checking build outputs..."
+        echo "Checking build outputs..."
 
-        # Check each project's output
-        if [ ! -f "Logos.PaymentService.Domain/bin/Release/net8.0/Logos.PaymentService.Domain.dll" ]; then
-          echo "? Domain project did not build"
-          exit 1
-        fi
+        projects=(
+          "Logos.Payment.Service.Core"
+          "Logos.Payment.Service.Infrastructure.InMemory"
+          "Logos.Payment.Service.CliHost"
+          "Logos.Payment.Service.HttpHost"
+          "Logos.Payment.Service.MasstransitHost"
+        )
 
-        if [ ! -f "Logos.PaymentService.Application/bin/Release/net8.0/Logos.PaymentService.Application.dll" ]; then
-          echo "? Application project did not build"
-          exit 1
-        fi
+        for project in "${projects[@]}"; do
+          if [ ! -f "${project}/bin/Release/net8.0/${project}.dll" ]; then
+            echo "FAIL: ${project} did not build"
+            exit 1
+          fi
+          echo "OK: ${project}"
+        done
 
-        if [ ! -f "Logos.PaymentService.Adapters/bin/Release/net8.0/Logos.PaymentService.Adapters.dll" ]; then
-          echo "? Adapters project did not build"
-          exit 1
-        fi
-
-        if [ ! -f "Logos.PaymentService.WebApi/bin/Release/net8.0/Logos.PaymentService.WebApi.dll" ]; then
-          echo "? WebApi project did not build"
-          exit 1
-        fi
-
-        if [ ! -f "Logos.PaymentService.Messaging/bin/Release/net8.0/Logos.PaymentService.Messaging.dll" ]; then
-          echo "? Messaging project did not build"
-          exit 1
-        fi
-
-        echo "? All projects built successfully!"
+        echo "All projects built successfully!"
 
     - name: Summary
       if: success()
       run: |
-        echo "### ? C# Example Verification Successful" >> $GITHUB_STEP_SUMMARY
+        echo "### C# Example Verification Successful" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "All projects compiled successfully:" >> $GITHUB_STEP_SUMMARY
-        echo "- ? Logos.PaymentService.Domain" >> $GITHUB_STEP_SUMMARY
-        echo "- ? Logos.PaymentService.Application" >> $GITHUB_STEP_SUMMARY
-        echo "- ? Logos.PaymentService.Adapters" >> $GITHUB_STEP_SUMMARY
-        echo "- ? Logos.PaymentService.WebApi" >> $GITHUB_STEP_SUMMARY
-        echo "- ? Logos.PaymentService.Messaging" >> $GITHUB_STEP_SUMMARY
+        echo "- Logos.Payment.Service.Core" >> $GITHUB_STEP_SUMMARY
+        echo "- Logos.Payment.Service.Infrastructure.InMemory" >> $GITHUB_STEP_SUMMARY
+        echo "- Logos.Payment.Service.CliHost" >> $GITHUB_STEP_SUMMARY
+        echo "- Logos.Payment.Service.HttpHost" >> $GITHUB_STEP_SUMMARY
+        echo "- Logos.Payment.Service.MasstransitHost" >> $GITHUB_STEP_SUMMARY
+
+  verify-cpp:
+    name: Verify C++ Example
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build g++
+
+    - name: Configure (CMake + Ninja)
+      working-directory: examples/cpp
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      working-directory: examples/cpp
+      run: cmake --build build --config Release
+
+    - name: Verify CLI host built
+      working-directory: examples/cpp
+      run: |
+        echo "Checking build outputs..."
+        if [ ! -f "build/payment_cli" ]; then
+          echo "FAIL: payment_cli did not build"
+          exit 1
+        fi
+        echo "OK: payment_cli"
+        echo "All required C++ targets built successfully!"
+
+    - name: Summary
+      if: success()
+      run: |
+        echo "### C++ Example Verification Successful" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Core libraries and the CLI host compiled successfully." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The optional HTTP host (Qt6) and RabbitMQ host" >> $GITHUB_STEP_SUMMARY
+        echo "(AMQP-CPP + libev + nlohmann/json) are built only when" >> $GITHUB_STEP_SUMMARY
+        echo "their dependencies are present." >> $GITHUB_STEP_SUMMARY

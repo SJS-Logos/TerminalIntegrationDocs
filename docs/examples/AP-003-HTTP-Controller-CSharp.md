@@ -1,4 +1,4 @@
-# HTTP Controller Example: C#
+# HTTP Host Example - C#
 
 **Version:** 0.1  
 **Status:** Draft  
