@@ -258,6 +258,19 @@ Because a `202`-acknowledged record is non-durable (Section 4.5), a replay MAY f
 
 > **Reference:** This repeated POST behavior follows the idempotency guarantees described for the Idempotency-Key header by MDN ([Idempotency-Key][mdn-idempotency-key]) and the IETF HTTPAPI draft ([The Idempotency-Key HTTP Header Field][ietf-idempotency-key]): a server that has already processed a key returns the original outcome instead of re-processing the request.
 
+## 9.1 Thin Status Probe
+
+To avoid re-transmitting the full command body on every retry, a client MAY issue a **thin status probe**: a request carrying the `Idempotency-Key` but no command body, asking the server whether it still holds a record for that key.
+
+- If a surviving Execution Record exists, the server MUST respond as in the Behavior above — the current record state, or the terminal `200`/`201` response once ownership has been taken — without requiring the body.
+- If no record survives (for example, a prior `202` record was lost per Section 4.5), the server MUST respond `428 Precondition Required` ([RFC 6585][rfc6585]) to signal that the client must re-issue the request with the full command body.
+
+A client that receives `428 Precondition Required` in response to a probe MUST re-send the full request under the same `Idempotency-Key`. The `Idempotency-Key` MUST remain stable across the original request, all probes, and any full-body re-send for the same logical command.
+
+A `428` response distinguishes the probe-miss case from `404 Not Found` (an unknown endpoint or URL) and from the payload-mismatch responses of Section 7.2 (`422`/`409`), which apply only when a record exists but the payload differs.
+
+> **Note (non-normative):** The bandwidth motivation for the thin probe on constrained clients, and the reasoning behind choosing `428` over `404`, are discussed in the companion [Idempotency-Key Generation Considerations][keygen] (§7).
+
 ---
 
 # 10. Role of Persistent Storage
@@ -411,6 +424,7 @@ All state retrieval is performed through idempotent request replay.
 - [MDN — Idempotent request methods (glossary)][mdn-idempotent]  
 - [IETF HTTPAPI — The Idempotency-Key HTTP Header Field][ietf-idempotency-key]  
 - [RFC 9110 — HTTP Semantics, §9.2.2 Idempotent Methods][rfc9110-idempotent]  
+- [RFC 6585 — Additional HTTP Status Codes (including 428 Precondition Required)][rfc6585]  
 - [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels][rfc2119]  
 - [RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words][rfc8174]  
 - [W3C — Trace Context (`traceparent`/`tracestate`)][w3c-trace-context]  
@@ -430,6 +444,7 @@ All state retrieval is performed through idempotent request replay.
 [mdn-idempotent]: https://developer.mozilla.org/en-US/docs/Glossary/Idempotent
 [ietf-idempotency-key]: https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 [rfc9110-idempotent]: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2
+[rfc6585]: https://www.rfc-editor.org/rfc/rfc6585
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
 [rfc8174]: https://www.rfc-editor.org/rfc/rfc8174
 [w3c-trace-context]: https://www.w3.org/TR/trace-context/

@@ -10,7 +10,7 @@
 
 This document is a non-normative companion to the *Idempotent Command Execution Protocol* (the "Protocol"). The Protocol requires a client-generated `Idempotency-Key` (Protocol §4.3, §5.1) but deliberately does not constrain how that key is generated.
 
-This companion explores the practical trade-offs of key generation, particularly for constrained clients (payment terminals and similar embedded devices) and for server-side storage. Both **SQL Server** (used by the majority of current products) and **PostgreSQL** (a forward-looking target) are covered, since the estate is expected to run a mix of the two during transition. It provides guidance and references; it does not alter the normative requirements of the Protocol.
+This companion explores the practical trade-offs of key generation, particularly for constrained clients (payment terminals and similar embedded devices) and for server-side storage. Both **SQL Server** (used by the majority of current products) and **PostgreSQL** (a forward-looking target) are covered, since the estate is expected to run a mix of the two during transition. Section 7 additionally covers a related transport-level cost — the bandwidth of retrying commands under the Protocol's non-durable `202` model — because it directly shapes how a terminal reuses the `Idempotency-Key`; the normative rule for that behavior lives in the Protocol (§9.1). This document provides guidance and references; it does not alter the normative requirements of the Protocol.
 
 ---
 
@@ -92,18 +92,20 @@ Constrained clients (payment terminals, embedded devices) may generate keys unde
 - **Cost.** Cryptographic random generation can be expensive on limited CPUs at high transaction rates.
 - **Entropy.** Many embedded devices have weak entropy shortly after boot and no hardware RNG. Time-based seeds are predictable because clocks start near a fixed value at power-on. This class of failure is documented in *Mining Your Ps and Qs* (Heninger et al., USENIX Security 2012), which found embedded devices generating predictable keys due to low boot-time entropy.
 
-For idempotency keys the primary risk is not confidentiality but **collision** and **cross-device duplication**, which violate the uniqueness invariant.
+For idempotency keys the primary risk is not confidentiality but **collision** and **cross-generator duplication**, which violate the uniqueness invariant.
+
+> **Note on the identity namespace:** A physical terminal has a stable **device id** that identifies the hardware, but a single device MAY host several independent applications (for example, one forecourt computer driving several fuel pumps). Each application has a **globally unique application id**. Because the application id is globally unique, it — not the device id — is the correct uniqueness namespace: an identity-scoped scheme MUST scope uniqueness by the tuple **(application id, monotonic component)**. Device id alone is insufficient (co-located applications share it) and, given a globally unique application id, device id is unnecessary for key uniqueness and MAY be omitted (it remains useful only for hardware lookup / observability).
 
 ## 5.2 Options
 
 - **Hardware TRNG / secure element.** Many payment terminals include a crypto element for key management; where available it SHOULD be used as the entropy source.
 - **Seed-once CSPRNG.** Seed a cryptographically secure PRNG once from a good source, then derive keys cheaply.
-- **Identity-scoped keys.** Combine a stable device identifier (for example `X-Device-Id`, `AiO.Constants` `HeaderNames.DeviceId`) with a monotonic component so uniqueness does not depend on RNG quality.
+- **Identity-scoped keys.** Combine the **globally unique application id** of the app instance with a monotonic component, so uniqueness does not depend on RNG quality. Because the application id is globally unique it is sufficient on its own as the namespace; device id is not required for key uniqueness (see §5.1) and is used only for hardware lookup.
 
 ## 5.3 Guidance
 
 - Implementations SHOULD NOT rely on a time-seeded, non-cryptographic PRNG as the sole source of key uniqueness on devices with weak boot-time entropy.
-- Implementations SHOULD prefer device-scoped keys (device id + monotonic component) or a properly seeded CSPRNG / hardware TRNG.
+- Implementations SHOULD prefer identity-scoped keys (globally unique application id + monotonic component) or a properly seeded CSPRNG / hardware TRNG. The globally unique application id is the required namespace; device id is not needed for key uniqueness (§5.1).
 
 ---
 
@@ -111,20 +113,20 @@ For idempotency keys the primary risk is not confidentiality but **collision** a
 
 ## 6.1 Problem
 
-A composite key such as *(device UUID, counter)* addresses cross-device uniqueness without global randomness, but introduces two costs:
+A composite key such as *(application id, counter)* addresses cross-generator uniqueness without global randomness, but introduces two costs:
 
 - **Storage cost.** A wide composite key inflates indexes and, if used as the primary key, worsens the insert-locality overhead of Section 4.
-- **Counter durability.** A per-device counter MUST survive reboot; otherwise the device must resync with the server or risk reissuing keys. Persisting every increment is expensive on constrained flash storage.
+- **Counter durability.** A per-application counter MUST survive reboot; otherwise the application must resync with the server or risk reissuing keys. Persisting every increment is expensive on constrained flash storage. The counter is scoped per **application** (identified by its globally unique application id), so co-located applications on the same device each maintain their own counter (§5.1).
 
 ## 6.2 Options
 
 - **Fixed-width encoding.** Hash or pack the composite into a fixed-width value and store it in a non-clustered unique index rather than clustering on it.
 - **Block/batch allocation (HiLo).** Reserve a block of N counter values and persist only the high-watermark, bounding writes to once per N increments and tolerating a bounded gap on crash. This is the HiLo pattern used by ORMs such as NHibernate and EF.
-- **Time-ordered IDs.** Snowflake, ULID, KSUID, and UUIDv7 combine a timestamp, a node/device identifier, and a small per-tick sequence. They avoid counter resync entirely, requiring only a reliable clock plus a small monotonic guard against clock regression.
+- **Time-ordered IDs.** Snowflake, ULID, KSUID, and UUIDv7 combine a timestamp, a node/device identifier, and a small per-tick sequence. They avoid counter resync entirely, requiring only a reliable clock plus a small monotonic guard against clock regression. (KSUID is a segment-style time-ordered ID similar in spirit to ULID.) Where the node identifier is used to disambiguate generators, it MUST be derived from the globally unique application id, not the device id, so co-located applications do not share a node value (§5.1).
 
 ## 6.3 Guidance
 
-- If a monotonic counter is used, implementations SHOULD persist it in blocks (HiLo) rather than per-increment, and MUST ensure the persisted high-watermark is durable across reboot.
+- If a monotonic counter is used, implementations SHOULD persist it in blocks (HiLo) rather than per-increment, and MUST ensure the persisted high-watermark is durable across reboot. The counter MUST be scoped per application (by its globally unique application id), so co-located applications on the same device do not share a counter (§5.1).
 - Implementations MAY prefer time-ordered IDs (UUIDv7 / ULID / Snowflake) to avoid counter-resync complexity, provided the device clock is monotonic or guarded against regression.
 
 ---
@@ -137,20 +139,26 @@ Under the Protocol's ownership model, a `202 Accepted` does not transfer ownersh
 
 The cost that terminal architects are concerned with is **not the key** — the `Idempotency-Key` is a few bytes — but the **repeated transmission of the command body** over a constrained, sometimes metered, link. Key *generation* is cheap by comparison; the expensive part is re-sending the payload for a command the server may already be executing.
 
-This concern is a transport/protocol optimization, not a key-generation property. It is discussed here because it directly shapes how a terminal reuses the `Idempotency-Key` across retries; the normative retry contract remains defined by the Protocol.
+This concern is a transport/protocol matter rather than a key-generation property; the normative retry and status-probe contract is defined by the Protocol (§9.1). It is summarized here because it directly shapes how a terminal reuses the `Idempotency-Key` across retries.
 
-## 7.2 Options
+## 7.2 Approach
 
-- **Thin status probe (recommended).** After receiving `202`, the client's retries SHOULD first probe with the `Idempotency-Key` alone (no command body) to ask "do you still own this key?". If the server still has a surviving record it returns the current state or terminal response without a re-upload. Only if the server reports no such record (its `202` record was lost) does the client re-send the full payload. When a body-less probe cannot be satisfied because no record survives, the server SHOULD respond `428 Precondition Required` (RFC 6585) to signal that the client must re-issue the request with the full command body; this distinguishes the probe-miss case from an unrelated `404` (wrong URL) or a `422`/`409` payload conflict (Protocol §7.2). This bounds full-payload retransmission to the actual loss cases rather than every retry.
-- **Conditional replay via request hash.** The client sends the `Idempotency-Key` plus the request hash the Protocol already tracks (§4.1), and the server asks for the full body only when it has no matching record. This reuses existing payload-consistency machinery (Protocol §7.2) instead of adding new fields.
+The Protocol defines a **thin status probe** for exactly this situation (Protocol §9.1): after a `202`, the client retries with the `Idempotency-Key` but no command body. If the server still holds a record it answers without a re-upload; if the record was lost it responds `428 Precondition Required` ([RFC 6585][rfc6585]), and only then does the client re-send the full payload. This bounds full-payload retransmission to the actual loss cases rather than every retry.
+
+Complementary, non-normative mitigations:
+
+- **Conditional replay via request hash.** The client sends the `Idempotency-Key` plus the request hash the Protocol already tracks (Protocol §4.1), letting the server request the full body only when it has no matching record. This reuses existing payload-consistency machinery (Protocol §7.2).
 - **Payload compression / delta encoding.** Where a thin probe is not available, compressing the command body reduces per-retry cost. This mitigates but does not eliminate the double-send.
-- **Longer best-effort retention of `202` records.** Servers MAY hold interim (non-durable) records long enough to cover the common retry window, reducing how often a probe misses. This does not change ownership semantics (still only `200`/`201`), it only reduces the frequency of full re-sends.
+- **Longer best-effort retention of `202` records.** Servers MAY hold interim (non-durable) records long enough to cover the common retry window, reducing how often a probe misses. This does not change ownership semantics (still only `200`/`201`); it only reduces the frequency of full re-sends.
+
+### Why `428` and not `404`
+
+A `428 Precondition Required` says "you must re-issue this request carrying more than it did" — precisely the probe-miss case, where the missing precondition is the command body. A `404 Not Found` would be ambiguous against genuine routing or URL errors on a constrained terminal link, and the `422`/`409` payload-mismatch responses (Protocol §7.2) apply only when a record exists but the payload differs. `428` therefore isolates "resend the body" from every other failure mode.
 
 ## 7.3 Guidance
 
-- Clients SHOULD, where the server supports it, retry a `202`-acknowledged command with a **thin probe** (`Idempotency-Key` only) and re-send the full payload only when the server reports no surviving record.
-- A server that receives a body-less probe for which no record survives SHOULD respond `428 Precondition Required` (RFC 6585), indicating that the request must be re-issued with the full command body; clients receiving `428` MUST re-send the full payload under the same `Idempotency-Key`.
-- The `Idempotency-Key` MUST remain stable across the original request, all thin probes, and any full-payload re-send for the same logical command, so the server can correlate them (Protocol §5.1, §7.1).
+- Clients SHOULD, where the server supports it, retry a `202`-acknowledged command with a thin probe (`Idempotency-Key` only) and re-send the full payload only when the server answers `428` (Protocol §9.1).
+- The `Idempotency-Key` MUST remain stable across the original request, all thin probes, and any full-payload re-send for the same logical command, so the server can correlate them (Protocol §5.1, §7.1, §9.1).
 - Implementations MUST NOT weaken ownership semantics to save bandwidth: a `202` still conveys no durability guarantee, and only a terminal `200`/`201` confirms the result is owned.
 - This optimization is transport-level; it does not change how the `Idempotency-Key` itself is generated (Sections 4–6).
 
@@ -163,11 +171,11 @@ This concern is a transport/protocol optimization, not a key-generation property
 | SQL Server insert locality | Narrow surrogate clustered key + unique non-clustered index, or UUIDv7 |
 | PostgreSQL insert locality | `uuid` primary key (acceptable); UUIDv7 preferred for high insert rates |
 | Cross-engine portability (transition) | UUIDv7 (performs well on both) |
-| Constrained-device entropy | Hardware TRNG / seeded CSPRNG, or device-scoped keys |
-| Cross-device uniqueness | Device id + monotonic component |
+| Constrained-device entropy | Hardware TRNG / seeded CSPRNG, or identity-scoped keys |
+| Cross-generator uniqueness | Globally unique application id + monotonic component (device id not required) |
 | Counter durability | HiLo block allocation; durable high-watermark |
 | Avoiding counter resync | Time-ordered IDs (UUIDv7 / ULID / Snowflake) |
-| Retry payload cost under non-durable `202` | Thin `Idempotency-Key`-only status probe; server answers `428 Precondition Required` on probe-miss; full re-send only then |
+| Retry payload cost under non-durable `202` | Thin `Idempotency-Key`-only status probe with `428` probe-miss (Protocol \u00a79.1) |
 
 ---
 
