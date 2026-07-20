@@ -262,6 +262,36 @@ The server MUST retain Execution Records for a defined retention window sufficie
 
 ---
 
+## 10.4 Placement of Idempotency Handling
+
+Idempotency enforcement MAY be handled at either of two layers, and this specification does not mandate a single placement:
+
+- **HTTP adapter layer** — the adapter inspects the incoming `Idempotency-Key` header and short-circuits duplicate requests before they reach the domain.  
+- **Domain layer** — the domain owns idempotency enforcement as part of command execution.
+
+If idempotency is enforced in the **domain**, the HTTP adapter MUST propagate the transport-level `Idempotency-Key` into the command DTO (or equivalent message) so that the domain receives the key as an explicit input. The domain MUST NOT depend on HTTP-specific constructs to obtain the key.
+
+If idempotency is enforced in the **adapter**, the adapter MUST NOT allow a duplicate command to reach the domain, and the resulting Execution Record state MUST remain consistent with the semantics defined in Sections 7 and 10.
+
+---
+
+## 10.5 Storage Expectations per Layer
+
+Regardless of placement, idempotency correctness MUST ultimately rest on persisted infrastructure (Section 10.1). The two layers MAY, however, use different storage strategies:
+
+- **Adapter (node) layer** — MAY participate in idempotency in one of two variations:
+  - *Authoritative variation* — the adapter maintains its own durable idempotency store that records the `Idempotency-Key` and the recorded response, and resolves duplicates at the edge without invoking the domain. In this variation the adapter store MUST meet the durability requirements of Section 10.1.
+  - *Optimization variation* — the adapter short-circuits obvious duplicates while the domain remains authoritative. It MAY use any storage that fits (volatile or non-volatile); the store remains an optimization regardless of its durability, and per Section 10.2 it MUST NOT be the source of truth and MUST NOT be required for recovery. Because idempotency correctness is enforced by the domain in this variation, the adapter MUST forward the `Idempotency-Key` to the domain (per Section 10.4).
+- **Domain layer** — MUST use durable, persisted storage for the Execution Record so that idempotency survives process and server failures.
+
+Where both layers persist independently, each layer's store is authoritative for the idempotency decision made at that layer. The layers MUST remain consistent with the duplicate-handling and payload-consistency semantics defined in Sections 7 and 10; in particular, a duplicate resolved at the adapter MUST yield a response consistent with the domain's Execution Record state.
+
+> **Informative note (non-normative):** This two-layer arrangement is not a distinct, standardized "dual-layer idempotency" model, and it does not require a cache. It is a composition of the `Idempotency-Key` request contract ([IETF HTTPAPI draft][ietf-idempotency-key], [MDN][mdn-idempotency-key]) with an idempotency store maintained at more than one layer. This mirrors the pattern observed in Stripe's client/server idempotency handling ([Stripe's idempotent requests][stripe-idempotency]), where keys and recorded responses are persisted durably at the API (node) layer independently of any downstream domain persistence. See also the [AWS Builders' Library on idempotent APIs][aws-idempotency] for durable key-based idempotency guidance.
+
+> **Informative note (non-normative):** A generic platform-level layer (for example a shared service backed by Redis, with a TTL aligned to the Section 10.3 retention window) is a common way to implement the adapter layer. Note that Redis persistence is durable-ish rather than transactional: RDB snapshots may lose writes since the last snapshot; AOF with `appendfsync everysec` may lose up to roughly one second of writes; and asynchronous replication may lose acknowledged writes on failover unless stronger guarantees (e.g. `WAIT`) are configured. Such a layer is well suited to the optimization variation, but MUST NOT be treated as authoritative unless its configured durability genuinely satisfies Section 10.1.
+
+---
+
 # 11. Failure Semantics
 
 ## 11.1 Crash Before Persistence
@@ -352,11 +382,18 @@ All state retrieval is performed through idempotent request replay.
 - [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels][rfc2119]  
 - [RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words][rfc8174]  
 
+**Informative (non-normative):**
+
+- [Stripe API — Idempotent requests][stripe-idempotency]  
+- [AWS Builders' Library — Making retries safe with idempotent APIs][aws-idempotency]  
+
 [mdn-idempotency-key]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
 [mdn-idempotent]: https://developer.mozilla.org/en-US/docs/Glossary/Idempotent
 [ietf-idempotency-key]: https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 [rfc9110-idempotent]: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
 [rfc8174]: https://www.rfc-editor.org/rfc/rfc8174
+[stripe-idempotency]: https://docs.stripe.com/api/idempotent_requests
+[aws-idempotency]: https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
 
 ---
