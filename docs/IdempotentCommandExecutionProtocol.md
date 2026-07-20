@@ -52,7 +52,7 @@ For consistency, this specification uses **MUST**/**MUST NOT** for absolute requ
 
 ## 4.1 Execution Record
 
-An Execution Record is a server-side durable representation of a command execution instance.
+An Execution Record is a server-side representation of a command execution instance.
 
 It contains:
 
@@ -61,6 +61,8 @@ It contains:
 - Execution state  
 - Response data (final or partial)  
 - Timestamps  
+
+An Execution Record becomes **durable** only once the server has taken ownership of the command (Section 4.5). Prior to that point — for example while a request has only been acknowledged with `202 Accepted` — the record MAY be held in non-durable host storage and MAY be lost on server restart or power cycle.
 
 ---
 
@@ -96,6 +98,17 @@ The Correlation-Id is a trace identifier used for observability. On the wire it 
 It MUST be propagated across service boundaries and MUST NOT influence execution semantics.
 
 > **Note on transport identifiers and domain data:** The Correlation-Id is defined here alongside the Idempotency-Key because both are transport-level identifiers that a service MAY surface into its domain. While the Correlation-Id itself is observability-only and MUST NOT drive execution, transport identifiers in general may legitimately be mapped into domain inputs — for example, the `Idempotency-Key` may be carried into the Domain as an explicit command input (Section 10.4), and a Correlation-Id MAY be copied into domain data where a service chooses to record it. Such mapping is an Incoming Implementation concern (AP-003 Mapping into a Contract Model) and does not change the rule that the Correlation-Id has no effect on idempotency or execution outcome.
+
+---
+
+## 4.5 Ownership
+
+**Ownership** is the point at which the server has durably accepted responsibility for the data associated with an Idempotency-Key.
+
+- The server takes ownership only when it returns a terminal success response: `200 OK` or `201 Created`. At that point the associated data is durably persisted and MUST survive server restart.
+- A `202 Accepted` response does **not** transfer ownership. It is a best-effort acknowledgment that the request was received; the associated Execution Record MAY reside in non-durable host storage and MAY be lost on power cycle.
+
+Because ownership is confirmed only by `200`/`201`, the default client behavior is to **retry the request with the same Idempotency-Key until it observes a terminal `200`/`201` response** (Sections 8 and 9). A retried request whose earlier `202`-acknowledged record did not survive MAY be treated by the server as a new command execution.
 
 ---
 
@@ -142,7 +155,7 @@ or, when a new resource is created:
 HTTP/1.1 201 Created
 ```
 
-No Execution Record retrieval is required by the client.
+A `200`/`201` response signals that the server has taken **ownership** (Section 4.5): the result is durably persisted and no Execution Record retrieval is required by the client.
 
 ---
 
@@ -154,13 +167,19 @@ If a command cannot be completed within the response budget:
 202 Accepted
 ```
 
+A `202 Accepted` is a **best-effort acknowledgment** and does **not** transfer ownership (Section 4.5). Because the host cannot guarantee durability at this stage, the Execution Record MAY be lost on server restart or power cycle.
+
 ### Requirements
 
 The server:
 
-- MUST persist the Execution Record BEFORE returning the response  
-- MUST associate the Idempotency-Key with the Execution Record  
-- MUST ensure the Execution Record is recoverable after failure  
+- MUST associate the Idempotency-Key with the Execution Record while the record exists  
+- SHOULD persist the Execution Record on a best-effort basis to aid recovery, but MUST NOT rely on that persistence being durable  
+- MUST take durable ownership of the data before, and only signal it by, returning a terminal `200`/`201` response  
+
+### Client obligation
+
+The client MUST NOT treat a `202 Accepted` as confirmation that the command result is durably stored. The client MUST continue to retry with the same Idempotency-Key until it observes a terminal `200`/`201` response (Sections 8 and 9).
 
 ---
 
@@ -168,13 +187,15 @@ The server:
 
 ## 7.1 Duplicate Request Handling
 
-If a request is received with an existing Idempotency-Key:
+If a request is received with an existing, still-available Execution Record for the Idempotency-Key:
 
 - The server MUST NOT re-execute the command  
 - The server MUST return the current Execution Record state  
 - The server MUST ensure response consistency across retries  
 
-While the Execution Record is still `Pending` or `Running`, the server MUST return `202 Accepted` for the replayed request. Once the record reaches `Completed` or `Failed`, the server MUST return the terminal response.
+While the Execution Record is still `Pending` or `Running`, the server MUST return `202 Accepted` for the replayed request. Once ownership has been taken and the record reaches `Completed` or `Failed`, the server MUST return the terminal `200`/`201` response.
+
+Because a `202`-acknowledged Execution Record is not durable (Sections 4.5 and 6.2), a replayed request MAY arrive after its earlier record has been lost. In that case the server has not taken ownership, and it MAY treat the request as a new command execution. This is safe precisely because the client identifies the command by its Idempotency-Key: the command is either resumed from a surviving record or executed anew, and ownership is confirmed only by a terminal `200`/`201`.
 
 ---
 
@@ -202,8 +223,9 @@ If a client loses the response to a request:
 
 If the server crashes after issuing a `202 Accepted` response:
 
-- The Execution Record MUST be recoverable from durable storage  
-- The execution MUST resume or remain queryable via retrying the same request  
+- The Execution Record MAY have been lost, because a `202` acknowledgment is non-durable and does not transfer ownership (Sections 4.5 and 6.2)  
+- On retry with the same Idempotency-Key, the server MUST resume from a surviving record if one exists, or MAY treat the request as a new command execution if the record did not survive  
+- The client MUST continue retrying until it observes a terminal `200`/`201` response, at which point ownership has been durably taken
 
 ---
 
@@ -229,8 +251,10 @@ Instead, clients MUST use the idempotent POST request itself as the mechanism fo
 
 A repeated request with the same Idempotency-Key:
 
-- MUST NOT trigger re-execution  
-- MUST return the current Execution Record state or final response  
+- MUST NOT trigger re-execution while a surviving Execution Record exists  
+- MUST return the current Execution Record state, or the terminal `200`/`201` response once ownership has been taken  
+
+Because a `202`-acknowledged record is non-durable (Section 4.5), a replay MAY find no record and be treated as a new execution. The terminal `200`/`201` response is therefore the definitive signal that the command has completed and its result is durably owned by the server.
 
 > **Reference:** This repeated POST behavior follows the idempotency guarantees described for the Idempotency-Key header by MDN ([Idempotency-Key][mdn-idempotency-key]) and the IETF HTTPAPI draft ([The Idempotency-Key HTTP Header Field][ietf-idempotency-key]): a server that has already processed a key returns the original outcome instead of re-processing the request.
 
@@ -240,9 +264,9 @@ A repeated request with the same Idempotency-Key:
 
 ## 10.1 Durable Storage Requirement
 
-The server MUST persist Execution Records in durable storage before acknowledging a request with `202 Accepted`.
+The server MUST persist Execution Records in durable storage before taking **ownership** of a command — that is, before returning a terminal `200 OK` or `201 Created` response.
 
-Failure to persist MUST result in request failure (no acknowledgment).
+A `202 Accepted` response does NOT require durable persistence; hosts that cannot guarantee durability MAY hold the interim Execution Record in non-durable storage that is lost on power cycle (Sections 4.5 and 6.2). Failure to durably persist before a terminal `200`/`201` MUST prevent that terminal response from being returned.
 
 ---
 
@@ -258,7 +282,7 @@ Ephemeral storage (e.g. caches) MAY be used for optimization but:
 
 ## 10.3 Idempotency-Key Retention
 
-The server MUST retain Execution Records for a defined retention window sufficient to cover the client's maximum expected retry period.
+The server MUST retain owned (durably persisted) Execution Records for a defined retention window sufficient to cover the client's maximum expected retry period.
 
 - The retention window SHOULD be published or otherwise made known to clients  
 - After the retention window expires, the server MAY discard the Execution Record  
@@ -300,17 +324,18 @@ Where both layers persist independently, each layer's store is authoritative for
 
 # 11. Failure Semantics
 
-## 11.1 Crash Before Persistence
+## 11.1 Crash Before Ownership
 
-- No `202 Accepted` MAY be returned  
-- Client retries safely  
+- A `200`/`201` MUST NOT be returned until ownership is durably taken  
+- A prior `202 Accepted` (if any) MAY be lost  
+- Client retries safely with the same Idempotency-Key  
 
 ---
 
-## 11.2 Crash After Persistence
+## 11.2 Crash After Ownership
 
-- Execution Record MUST remain available  
-- Client retries return same state  
+- Once `200`/`201` has been returned, the Execution Record MUST remain durably available  
+- Client retries return the same terminal state  
 
 ---
 
@@ -328,9 +353,9 @@ Cache loss MUST NOT affect correctness, only performance.
 
 ---
 
-## 12.2 Execution Persistence First
+## 12.2 Ownership Persistence First
 
-> A server MUST NOT acknowledge acceptance (`202 Accepted`) without durable persistence of execution state.
+> A server MUST NOT take ownership (return `200 OK` or `201 Created`) without durable persistence of execution state. A `202 Accepted` conveys no such guarantee.
 
 ---
 
@@ -368,6 +393,7 @@ All state retrieval is performed through idempotent request replay.
 | --------------------- | ---------------------- | -------------- |
 | Duplicate suppression | Idempotency-Key        | Server         |
 | Execution tracking    | Execution Record       | Server         |
+| Durable ownership     | Terminal `200`/`201`   | Server         |
 | Retry recovery        | Idempotent POST replay | Client         |
 | Observability         | Correlation-Id         | Infrastructure |
 
@@ -375,7 +401,7 @@ All state retrieval is performed through idempotent request replay.
 
 # 15. Final Principle
 
-> In this model, the idempotent request itself is the handle to both command execution and execution state retrieval.
+> In this model, the idempotent request itself is the handle to both command execution and execution state retrieval. A `202 Accepted` is only a best-effort acknowledgment; a terminal `200`/`201` is the sole confirmation that the server has taken durable ownership of the command's outcome.
 
 ---
 

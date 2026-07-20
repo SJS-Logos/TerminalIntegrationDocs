@@ -129,7 +129,34 @@ A composite key such as *(device UUID, counter)* addresses cross-device uniquene
 
 ---
 
-# 7. Summary of Recommendations
+# 7. Retry Payload Cost under Non-Durable `202`
+
+## 7.1 Problem
+
+Under the Protocol's ownership model, a `202 Accepted` does not transfer ownership and its Execution Record may be lost on power cycle (Protocol §4.5, §6.2, §8.2). The default client behavior is therefore to retry with the same `Idempotency-Key` until it observes a terminal `200`/`201` (Protocol §8, §9). For a payment terminal this means the **full command payload is transmitted at least twice** whenever the server first answers `202`: once for the original request and again on each retry.
+
+The cost that terminal architects are concerned with is **not the key** — the `Idempotency-Key` is a few bytes — but the **repeated transmission of the command body** over a constrained, sometimes metered, link. Key *generation* is cheap by comparison; the expensive part is re-sending the payload for a command the server may already be executing.
+
+This concern is a transport/protocol optimization, not a key-generation property. It is discussed here because it directly shapes how a terminal reuses the `Idempotency-Key` across retries; the normative retry contract remains defined by the Protocol.
+
+## 7.2 Options
+
+- **Thin status probe (recommended).** After receiving `202`, the client's retries SHOULD first probe with the `Idempotency-Key` alone (no command body) to ask "do you still own this key?". If the server still has a surviving record it returns the current state or terminal response without a re-upload. Only if the server reports no such record (its `202` record was lost) does the client re-send the full payload. When a body-less probe cannot be satisfied because no record survives, the server SHOULD respond `428 Precondition Required` (RFC 6585) to signal that the client must re-issue the request with the full command body; this distinguishes the probe-miss case from an unrelated `404` (wrong URL) or a `422`/`409` payload conflict (Protocol §7.2). This bounds full-payload retransmission to the actual loss cases rather than every retry.
+- **Conditional replay via request hash.** The client sends the `Idempotency-Key` plus the request hash the Protocol already tracks (§4.1), and the server asks for the full body only when it has no matching record. This reuses existing payload-consistency machinery (Protocol §7.2) instead of adding new fields.
+- **Payload compression / delta encoding.** Where a thin probe is not available, compressing the command body reduces per-retry cost. This mitigates but does not eliminate the double-send.
+- **Longer best-effort retention of `202` records.** Servers MAY hold interim (non-durable) records long enough to cover the common retry window, reducing how often a probe misses. This does not change ownership semantics (still only `200`/`201`), it only reduces the frequency of full re-sends.
+
+## 7.3 Guidance
+
+- Clients SHOULD, where the server supports it, retry a `202`-acknowledged command with a **thin probe** (`Idempotency-Key` only) and re-send the full payload only when the server reports no surviving record.
+- A server that receives a body-less probe for which no record survives SHOULD respond `428 Precondition Required` (RFC 6585), indicating that the request must be re-issued with the full command body; clients receiving `428` MUST re-send the full payload under the same `Idempotency-Key`.
+- The `Idempotency-Key` MUST remain stable across the original request, all thin probes, and any full-payload re-send for the same logical command, so the server can correlate them (Protocol §5.1, §7.1).
+- Implementations MUST NOT weaken ownership semantics to save bandwidth: a `202` still conveys no durability guarantee, and only a terminal `200`/`201` confirms the result is owned.
+- This optimization is transport-level; it does not change how the `Idempotency-Key` itself is generated (Sections 4–6).
+
+---
+
+# 8. Summary of Recommendations
 
 | Concern | Preferred approach |
 | --- | --- |
@@ -140,13 +167,15 @@ A composite key such as *(device UUID, counter)* addresses cross-device uniquene
 | Cross-device uniqueness | Device id + monotonic component |
 | Counter durability | HiLo block allocation; durable high-watermark |
 | Avoiding counter resync | Time-ordered IDs (UUIDv7 / ULID / Snowflake) |
+| Retry payload cost under non-durable `202` | Thin `Idempotency-Key`-only status probe; server answers `428 Precondition Required` on probe-miss; full re-send only then |
 
 ---
 
-# 8. References
+# 9. References
 
 - [RFC 9562 — Universally Unique IDentifiers (UUIDs), including v6/v7/v8][rfc9562]  
 - [RFC 4122 — A Universally Unique IDentifier (UUID) URN Namespace (obsoleted by RFC 9562)][rfc4122]  
+- [RFC 6585 — Additional HTTP Status Codes (including 428 Precondition Required)][rfc6585]  
 - [Kimberly Tripp — GUIDs as PRIMARY KEYs and/or the clustering key (SQL Server)][sqlskills-guids]  
 - [Jimmy Nilsson — The Cost of GUIDs as Primary Keys (COMB)][comb-guids]  
 - [PostgreSQL — UUID Type (`uuid`)][pg-uuid]  
@@ -158,6 +187,7 @@ A composite key such as *(device UUID, counter)* addresses cross-device uniquene
 
 [rfc9562]: https://www.rfc-editor.org/rfc/rfc9562
 [rfc4122]: https://www.rfc-editor.org/rfc/rfc4122
+[rfc6585]: https://www.rfc-editor.org/rfc/rfc6585
 [pg-uuid]: https://www.postgresql.org/docs/current/datatype-uuid.html
 [pg-cluster]: https://www.postgresql.org/docs/current/sql-cluster.html
 [sqlskills-guids]: https://www.sqlskills.com/blogs/kimberly/guids-as-primary-keys-andor-the-clustering-key/
