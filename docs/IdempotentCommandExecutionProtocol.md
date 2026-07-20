@@ -85,13 +85,17 @@ It is used to ensure that repeated requests do not result in multiple executions
 
 > **Reference:** The Idempotency-Key request header is described by MDN ([Idempotency-Key][mdn-idempotency-key]) and specified by the IETF HTTPAPI draft ([The Idempotency-Key HTTP Header Field][ietf-idempotency-key]). This specification adopts that definition and constrains it for command execution.
 
+> **Generation guidance (non-normative):** This specification does not constrain how the Idempotency-Key is generated. Practical trade-offs — SQL Server storage locality, generation cost, boot-time entropy on constrained devices, and composite/monotonic key strategies — are discussed in the companion document [Idempotency-Key Generation Considerations][keygen].
+
 ---
 
 ## 4.4 Correlation-Id
 
-The Correlation-Id is a trace identifier used for observability.
+The Correlation-Id is a trace identifier used for observability. On the wire it is carried by the organization's custom `X-Correlation-Id` header, defined by the `AiO.Constants` library (`HeaderNames.CorrelationId`). It is not an IANA-registered or MDN-documented standard header; the standardized equivalent for distributed tracing is W3C Trace Context ([`traceparent`/`tracestate`][w3c-trace-context]).
 
 It MUST be propagated across service boundaries and MUST NOT influence execution semantics.
+
+> **Note on transport identifiers and domain data:** The Correlation-Id is defined here alongside the Idempotency-Key because both are transport-level identifiers that a service MAY surface into its domain. While the Correlation-Id itself is observability-only and MUST NOT drive execution, transport identifiers in general may legitimately be mapped into domain inputs — for example, the `Idempotency-Key` may be carried into the Domain as an explicit command input (Section 10.4), and a Correlation-Id MAY be copied into domain data where a service chooses to record it. Such mapping is an Incoming Implementation concern (AP-003 Mapping into a Contract Model) and does not change the rule that the Correlation-Id has no effect on idempotency or execution outcome.
 
 ---
 
@@ -113,7 +117,7 @@ The client MUST include an Idempotency-Key in all non-idempotent requests (POST 
 
 ## 5.2 Correlation-Id
 
-The client MAY include a Correlation-Id.
+The client MAY include a Correlation-Id, carried by the custom `X-Correlation-Id` header (`AiO.Constants` `HeaderNames.CorrelationId`). This is a de-facto, organization-defined header rather than a standardized one; services requiring standards-based tracing SHOULD additionally support W3C Trace Context ([`traceparent`/`tracestate`][w3c-trace-context]).
 
 If present:
 
@@ -264,14 +268,16 @@ The server MUST retain Execution Records for a defined retention window sufficie
 
 ## 10.4 Placement of Idempotency Handling
 
+> **Terminology alignment:** This section aligns with the logical model of AP-001 [ap-001] and the incoming-implementation structure of AP-003 [ap-003]. The **Incoming Implementation** (the AP-003 *Transport Endpoint* within an HTTP *Host Unit*) is referred to below as the *transport layer*; the **Domain** (AP-001 §6.3), coordinated by the **Application**, is referred to as the *domain layer*. "Moving the key into the DTO" is, in AP-003 terms, a **Mapping** of the `Idempotency-Key` into an Application **Contract Model** (Request Model).
+
 Idempotency enforcement MAY be handled at either of two layers, and this specification does not mandate a single placement:
 
-- **HTTP adapter layer** — the adapter inspects the incoming `Idempotency-Key` header and short-circuits duplicate requests before they reach the domain.  
-- **Domain layer** — the domain owns idempotency enforcement as part of command execution.
+- **Transport layer (Incoming Implementation)** — the Transport Endpoint inspects the incoming `Idempotency-Key` header and short-circuits duplicate requests before they reach the domain.  
+- **Domain layer** — the Domain owns idempotency enforcement as part of command execution.
 
-If idempotency is enforced in the **domain**, the HTTP adapter MUST propagate the transport-level `Idempotency-Key` into the command DTO (or equivalent message) so that the domain receives the key as an explicit input. The domain MUST NOT depend on HTTP-specific constructs to obtain the key.
+If idempotency is enforced in the **domain**, the Incoming Implementation MUST map the transport-level `Idempotency-Key` into an Application Contract Model (per AP-003 Mapping) so that the domain receives the key as an explicit input. The domain MUST NOT depend on transport-specific constructs to obtain the key (AP-001 §6.3).
 
-If idempotency is enforced in the **adapter**, the adapter MUST NOT allow a duplicate command to reach the domain, and the resulting Execution Record state MUST remain consistent with the semantics defined in Sections 7 and 10.
+If idempotency is enforced in the **transport layer**, the Incoming Implementation MUST NOT allow a duplicate command to reach the domain, and the resulting Execution Record state MUST remain consistent with the semantics defined in Sections 7 and 10. Consistent with AP-001 §6.1 and AP-003, the Incoming Implementation MUST NOT make business decisions; idempotency deduplication is treated here as a technical operation, not a business outcome.
 
 ---
 
@@ -279,16 +285,16 @@ If idempotency is enforced in the **adapter**, the adapter MUST NOT allow a dupl
 
 Regardless of placement, idempotency correctness MUST ultimately rest on persisted infrastructure (Section 10.1). The two layers MAY, however, use different storage strategies:
 
-- **Adapter (node) layer** — MAY participate in idempotency in one of two variations:
-  - *Authoritative variation* — the adapter maintains its own durable idempotency store that records the `Idempotency-Key` and the recorded response, and resolves duplicates at the edge without invoking the domain. In this variation the adapter store MUST meet the durability requirements of Section 10.1.
-  - *Optimization variation* — the adapter short-circuits obvious duplicates while the domain remains authoritative. It MAY use any storage that fits (volatile or non-volatile); the store remains an optimization regardless of its durability, and per Section 10.2 it MUST NOT be the source of truth and MUST NOT be required for recovery. Because idempotency correctness is enforced by the domain in this variation, the adapter MUST forward the `Idempotency-Key` to the domain (per Section 10.4).
+- **Transport layer (Incoming Implementation)** — MAY participate in idempotency in one of two variations:
+  - *Authoritative variation* — the Incoming Implementation maintains its own durable idempotency store that records the `Idempotency-Key` and the recorded response, and resolves duplicates at the edge without invoking the domain. In this variation the store MUST meet the durability requirements of Section 10.1.
+  - *Optimization variation* — the Incoming Implementation short-circuits obvious duplicates while the domain remains authoritative. It MAY use any storage that fits (volatile or non-volatile); the store remains an optimization regardless of its durability, and per Section 10.2 it MUST NOT be the source of truth and MUST NOT be required for recovery. Because idempotency correctness is enforced by the domain in this variation, the Incoming Implementation MUST forward the `Idempotency-Key` to the domain (per Section 10.4).
 - **Domain layer** — MUST use durable, persisted storage for the Execution Record so that idempotency survives process and server failures.
 
-Where both layers persist independently, each layer's store is authoritative for the idempotency decision made at that layer. The layers MUST remain consistent with the duplicate-handling and payload-consistency semantics defined in Sections 7 and 10; in particular, a duplicate resolved at the adapter MUST yield a response consistent with the domain's Execution Record state.
+Where both layers persist independently, each layer's store is authoritative for the idempotency decision made at that layer. The layers MUST remain consistent with the duplicate-handling and payload-consistency semantics defined in Sections 7 and 10; in particular, a duplicate resolved in the transport layer MUST yield a response consistent with the domain's Execution Record state.
 
 > **Informative note (non-normative):** This two-layer arrangement is not a distinct, standardized "dual-layer idempotency" model, and it does not require a cache. It is a composition of the `Idempotency-Key` request contract ([IETF HTTPAPI draft][ietf-idempotency-key], [MDN][mdn-idempotency-key]) with an idempotency store maintained at more than one layer. This mirrors the pattern observed in Stripe's client/server idempotency handling ([Stripe's idempotent requests][stripe-idempotency]), where keys and recorded responses are persisted durably at the API (node) layer independently of any downstream domain persistence. See also the [AWS Builders' Library on idempotent APIs][aws-idempotency] for durable key-based idempotency guidance.
 
-> **Informative note (non-normative):** A generic platform-level layer (for example a shared service backed by Redis, with a TTL aligned to the Section 10.3 retention window) is a common way to implement the adapter layer. Note that Redis persistence is durable-ish rather than transactional: RDB snapshots may lose writes since the last snapshot; AOF with `appendfsync everysec` may lose up to roughly one second of writes; and asynchronous replication may lose acknowledged writes on failover unless stronger guarantees (e.g. `WAIT`) are configured. Such a layer is well suited to the optimization variation, but MUST NOT be treated as authoritative unless its configured durability genuinely satisfies Section 10.1.
+> **Informative note (non-normative):** A generic platform-level layer (for example a shared service backed by Redis, with a TTL aligned to the Section 10.3 retention window) is a common way to implement the transport-layer store. Note that Redis persistence is durable-ish rather than transactional: RDB snapshots may lose writes since the last snapshot; AOF with `appendfsync everysec` may lose up to roughly one second of writes; and asynchronous replication may lose acknowledged writes on failover unless stronger guarantees (e.g. `WAIT`) are configured. Such a layer is well suited to the optimization variation, but MUST NOT be treated as authoritative unless its configured durability genuinely satisfies Section 10.1.
 
 ---
 
@@ -381,11 +387,18 @@ All state retrieval is performed through idempotent request replay.
 - [RFC 9110 — HTTP Semantics, §9.2.2 Idempotent Methods][rfc9110-idempotent]  
 - [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels][rfc2119]  
 - [RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words][rfc8174]  
+- [W3C — Trace Context (`traceparent`/`tracestate`)][w3c-trace-context]  
 
 **Informative (non-normative):**
 
 - [Stripe API — Idempotent requests][stripe-idempotency]  
 - [AWS Builders' Library — Making retries safe with idempotent APIs][aws-idempotency]  
+
+**Related internal specifications:**
+
+- [AP-001 — Architectural Principles][ap-001]  
+- [AP-003 — Incoming Implementations][ap-003]  
+- [Idempotency-Key Generation Considerations (companion)][keygen]  
 
 [mdn-idempotency-key]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
 [mdn-idempotent]: https://developer.mozilla.org/en-US/docs/Glossary/Idempotent
@@ -393,7 +406,11 @@ All state retrieval is performed through idempotent request replay.
 [rfc9110-idempotent]: https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
 [rfc8174]: https://www.rfc-editor.org/rfc/rfc8174
+[w3c-trace-context]: https://www.w3.org/TR/trace-context/
 [stripe-idempotency]: https://docs.stripe.com/api/idempotent_requests
 [aws-idempotency]: https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
+[ap-001]: ./AP-001.md
+[ap-003]: ./AP-003.md
+[keygen]: ./IdempotencyKeyGeneration.md
 
 ---
