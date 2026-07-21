@@ -6,20 +6,20 @@ This document compares the C++ and C# implementations of the Payment Service to 
 
 ### C# (examples/csharp/)
 ```
-Logos.PaymentService.Domain/
-Logos.PaymentService.Application/
-Logos.PaymentService.Adapters/
-Logos.PaymentService.WebApi/
-Logos.PaymentService.Messaging/
-Logos.PaymentService.Worker/
+MyPaymentService.Domain/
+MyPaymentService.Application/
+MyPaymentService.Adapters/
+MyPaymentService.WebApi/
+MyPaymentService.Messaging/
+MyPaymentService.Worker/
 ```
 
 ### C++ (examples/cpp/)
 ```
-logos_payment_service_domain/
-logos_payment_service_application/
-logos_payment_service_adapters/
-logos_payment_service_cli/
+mypaymentservice_domain/
+mypaymentservice_application/
+mypaymentservice_adapters/
+mypaymentservice_cli/
 ```
 
 ## Architecture Similarities

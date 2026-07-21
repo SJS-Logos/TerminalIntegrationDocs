@@ -22,7 +22,7 @@ This example uses a simplified payment authorization service to illustrate the c
 > ```bash
 > cd examples/csharp
 > dotnet build
-> cd Logos.PaymentService.WebApi
+> cd MyPaymentService.WebApi
 > dotnet run
 > ```
 
@@ -42,7 +42,7 @@ The example structure aligned to AP-002 is organized into the following projects
 **Location:** [`examples/csharp/`](../../examples/csharp/)
 
 ```
-Logos.Payment.Service.Core/
+MyPaymentService.Core/
 ├── Domain/
 │   ├── Entities/
 │   └── Services/
@@ -72,7 +72,7 @@ The Core comprises four peer folders — `Domain/`, `SharedKernel/`, `Capabiliti
 
 Shared immutable business datatypes belong in `SharedKernel/` and are reused across Domain, Capabilities, and Application.
 
-**File:** `Logos.Payment.Service.Core/SharedKernel/Money/Money.cs`
+**File:** `MyPaymentService.Core/SharedKernel/Money/Money.cs`
 
 The `Money` value object:
 - Represents monetary amounts with currency
@@ -80,11 +80,11 @@ The `Money` value object:
 - Provides domain operations (validation, comparison)
 - Shared between Domain logic and Application contracts
 
-**File:** `Logos.Payment.Service.Core/SharedKernel/PaymentStatus.cs`
+**File:** `MyPaymentService.Core/SharedKernel/PaymentStatus.cs`
 
 The `PaymentStatus` enum represents the authorization state.
 
-**File:** `Logos.Payment.Service.Core/SharedKernel/PaymentRecord.cs`
+**File:** `MyPaymentService.Core/SharedKernel/PaymentRecord.cs`
 
 The `PaymentRecord` record represents a complete payment record with identity assigned by the repository. (For when a mutable `Payment` entity becomes appropriate, see §9.)
 
@@ -92,7 +92,7 @@ The `PaymentRecord` record represents a complete payment record with identity as
 
 Domain services contain business logic and work with Value Objects. They are stateless.
 
-**File:** `Logos.Payment.Service.Core/Domain/Services/PaymentAuthorizationService.cs`
+**File:** `MyPaymentService.Core/Domain/Services/PaymentAuthorizationService.cs`
 
 The `PaymentAuthorizationService`:
 - Stateless service with business logic
@@ -104,11 +104,11 @@ The `PaymentAuthorizationService`:
 
 Capabilities are domain-owned abstractions that describe what the Domain requires (AP-005).
 
-**File:** `Logos.Payment.Service.Core/Capabilities/ExternalServices/IFraudDetectionService.cs`
+**File:** `MyPaymentService.Core/Capabilities/ExternalServices/IFraudDetectionService.cs`
 
 The `IFraudDetectionService` capability defines fraud detection in domain terms.
 
-**File:** `Logos.Payment.Service.Core/Capabilities/Persistence/IPaymentRepository.cs`
+**File:** `MyPaymentService.Core/Capabilities/Persistence/IPaymentRepository.cs`
 
 The `IPaymentRepository` capability defines persistence in domain terms.
 
@@ -120,11 +120,11 @@ The `IPaymentRepository` capability defines persistence in domain terms.
 
 Contract models reference shared business datatypes from `SharedKernel/`.
 
-**File:** `Logos.Payment.Service.Core/Application/Contracts/AuthorizePaymentContract.cs`
+**File:** `MyPaymentService.Core/Application/Contracts/AuthorizePaymentContract.cs`
 
 Defines `AuthorizePaymentRequest` and `AuthorizePaymentResponse` records that reference the shared `Money` and `PaymentStatus` types from `SharedKernel/`.
 
-**File:** `Logos.Payment.Service.Core/Application/Contracts/GetPaymentContract.cs`
+**File:** `MyPaymentService.Core/Application/Contracts/GetPaymentContract.cs`
 
 Defines `GetPaymentRequest` and `GetPaymentResponse` records.
 
@@ -132,7 +132,7 @@ Defines `GetPaymentRequest` and `GetPaymentResponse` records.
 
 Use cases orchestrate domain operations and manage transaction boundaries.
 
-**File:** `Logos.Payment.Service.Core/Application/UseCases/AuthorizePaymentUseCase.cs`
+**File:** `MyPaymentService.Core/Application/UseCases/AuthorizePaymentUseCase.cs`
 
 The `AuthorizePaymentUseCase`:
 - Receives `AuthorizePaymentRequest` contract
@@ -141,7 +141,7 @@ The `AuthorizePaymentUseCase`:
 - Returns `AuthorizePaymentResponse` contract
 - **Synchronous execution** on the incoming thread
 
-**File:** `Logos.Payment.Service.Core/Application/UseCases/GetPaymentUseCase.cs`
+**File:** `MyPaymentService.Core/Application/UseCases/GetPaymentUseCase.cs`
 
 The `GetPaymentUseCase` retrieves payment details from the repository.
 
@@ -151,7 +151,7 @@ The `GetPaymentUseCase` retrieves payment details from the repository.
 
 Configuration happens at the composition root; adapters are registered by interface.
 
-**File:** `Logos.Payment.Service.HttpHost/Program.cs`
+**File:** `MyPaymentService.HttpHost/Program.cs`
 
 The composition root:
 - Registers domain services with their dependencies
@@ -174,7 +174,7 @@ The key point for AP-002 is:
 
 # 7. Key Points
 
-1. **The Core has no external dependencies**: `Logos.Payment.Service.Core` references no Host Units.
+1. **The Core has no external dependencies**: `MyPaymentService.Core` references no Host Units.
 
 2. **`Application/` depends inward**: it references only `Domain/`, `SharedKernel/`, and `Capabilities/` within the Core.
 

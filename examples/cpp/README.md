@@ -6,7 +6,7 @@ This is a complete C++ implementation of the payment service following the archi
 
 ```
 examples/cpp/
-??? logos_payment_service_core/                    # Core Unit (AP-002)
+??? mypaymentservice_core/                    # Core Unit (AP-002)
 ?   ??? domain/                            # Domain layer (business logic)
 ?   ?   ??? services/                      # Stateless business logic
 ?   ?       ??? payment_authorization_service.h/cpp
@@ -27,10 +27,10 @@ examples/cpp/
 ?       ?   ??? get_payment_use_case.h/cpp
 ?       ??? container/                     # Dependency injection
 ?           ??? service_container.h
-??? logos_payment_service_infrastructure/          # Infrastructure Unit (capability impls)
+??? mypaymentservice_infrastructure/          # Infrastructure Unit (capability impls)
 ?   ??? in_memory_payment_repository.h/cpp
 ?   ??? simple_fraud_detection_service.h/cpp
-??? logos_payment_service_cli_host/                # CLI Host Unit (AP-003)
+??? mypaymentservice_cli_host/                # CLI Host Unit (AP-003)
     ??? cli_parser.h/cpp
     ??? commands/
     ?   ??? authorize_command.h/cpp
@@ -43,10 +43,10 @@ examples/cpp/
 Beyond the CLI host shown above, the example includes two more AP-003 incoming
 implementations that share the same Core:
 
-- `logos_payment_service_http_host/` - Qt-based HTTP host (built when Qt6 is available).
-- `logos_payment_service_rabbitmq_host/` - RabbitMQ consumer host, the C++ counterpart
+- `mypaymentservice_http_host/` - Qt-based HTTP host (built when Qt6 is available).
+- `mypaymentservice_rabbitmq_host/` - RabbitMQ consumer host, the C++ counterpart
   of the C# MassTransit example (built when AMQP-CPP, libev, and nlohmann/json are
-  available). See its [README](logos_payment_service_rabbitmq_host/README.md).
+  available). See its [README](mypaymentservice_rabbitmq_host/README.md).
 
 ## Key Architectural Features
 
@@ -290,9 +290,9 @@ To add a real database or external fraud detection service:
 
 ### Add a New Use Case
 
-1. Create a new use case in `logos_payment_service_core/application/use_cases/`
-2. Define contracts in `logos_payment_service_core/application/contracts/`
-3. Create a CLI command in `logos_payment_service_cli_host/commands/`
+1. Create a new use case in `mypaymentservice_core/application/use_cases/`
+2. Define contracts in `mypaymentservice_core/application/contracts/`
+3. Create a CLI command in `mypaymentservice_cli_host/commands/`
 4. Wire it up in `main.cpp`
 
 ## References

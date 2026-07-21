@@ -15,7 +15,7 @@ examples/cpp/
 ??? QUICKSTART.md                                            # Quick start guide
 ??? .gitignore                                               # Git ignore file
 ?
-??? logos_payment_service_domain/                           # Domain Layer (Business Logic)
+??? mypaymentservice_domain/                           # Domain Layer (Business Logic)
 ?   ??? value_objects/
 ?   ?   ??? money.h / money.cpp                             # Money value object
 ?   ?   ??? payment_status.h                                # Payment status enum
@@ -26,7 +26,7 @@ examples/cpp/
 ?       ??? fraud_detection_service.h                       # Fraud detection interface
 ?       ??? payment_repository.h                            # Repository interface
 ?
-??? logos_payment_service_application/                      # Application Layer (Orchestration)
+??? mypaymentservice_application/                      # Application Layer (Orchestration)
 ?   ??? contracts/
 ?   ?   ??? authorize_payment_request.h                     # Authorization request DTO
 ?   ?   ??? authorize_payment_response.h                    # Authorization response DTO
@@ -37,11 +37,11 @@ examples/cpp/
 ?   ??? container/
 ?       ??? service_container.h                             # Dependency injection container
 ?
-??? logos_payment_service_adapters/                         # Adapters Layer (Infrastructure)
+??? mypaymentservice_adapters/                         # Adapters Layer (Infrastructure)
 ?   ??? in_memory_payment_repository.h / .cpp               # In-memory repository implementation
 ?   ??? simple_fraud_detection_service.h / .cpp             # Simple fraud detection
 ?
-??? logos_payment_service_cli/                              # CLI Layer (Entry Point)
+??? mypaymentservice_cli/                              # CLI Layer (Entry Point)
     ??? cli_parser.h / .cpp                                  # Command-line argument parser
     ??? commands/
     ?   ??? authorize_command.h / .cpp                       # Authorize payment command
@@ -79,9 +79,9 @@ examples/cpp/
 
 After building, the following libraries and executable are created:
 
-1. **logos_payment_service_domain.lib** (49 KB) - Domain business logic
-2. **logos_payment_service_application.lib** (29 KB) - Application use cases
-3. **logos_payment_service_adapters.lib** (171 KB) - Infrastructure implementations
+1. **mypaymentservice_domain.lib** (49 KB) - Domain business logic
+2. **mypaymentservice_application.lib** (29 KB) - Application use cases
+3. **mypaymentservice_adapters.lib** (171 KB) - Infrastructure implementations
 4. **payment_cli.exe** (60 KB) - Command-line interface
 
 ## Verified Functionality

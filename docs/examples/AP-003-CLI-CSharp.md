@@ -13,13 +13,13 @@ This example demonstrates a command-line interface (CLI) host that invokes use c
 
 > **Compilable Example Available**  
 > A fully compilable version of this example is available at:  
-> [`examples/csharp/Logos.Payment.Service.CliHost/`](../../examples/csharp/Logos.Payment.Service.CliHost/)
+> [`examples/csharp/MyPaymentService.CliHost/`](../../examples/csharp/MyPaymentService.CliHost/)
 >
 > You can build and run it with:
 > ```bash
 > cd examples/csharp
 > dotnet build
-> dotnet run --project Logos.Payment.Service.CliHost -- help
+> dotnet run --project MyPaymentService.CliHost -- help
 > ```
 
 **Key Points:**
@@ -33,11 +33,11 @@ This example demonstrates a command-line interface (CLI) host that invokes use c
 
 ## 2. Project Structure
 
-**Location:** `Logos.Payment.Service.CliHost/`
+**Location:** `MyPaymentService.CliHost/`
 
 ```
-Logos.Payment.Service.Core/                    (From AP-002 example)
-Logos.Payment.Service.CliHost/
+MyPaymentService.Core/                    (From AP-002 example)
+MyPaymentService.CliHost/
 +-- Commands/
 |   +-- AuthorizeCommand.cs
 |   +-- GetPaymentCommand.cs
@@ -56,7 +56,7 @@ The CLI Host is a thin adapter around the same Core (Application + Domain + Shar
 
 The CLI parser extracts commands, options, flags, and positional arguments from the command line.
 
-**File:** `Logos.Payment.Service.CliHost/CliParser.cs`
+**File:** `MyPaymentService.CliHost/CliParser.cs`
 
 The `CliParser` class:
 - Extracts command name (first argument)
@@ -66,7 +66,7 @@ The `CliParser` class:
 - Provides type-safe accessors
 
 ```csharp
-namespace Logos.Payment.Service.CliHost;
+namespace MyPaymentService.CliHost;
 
 public class CliParser
 {
@@ -132,7 +132,7 @@ public class CliParser
 
 The authorize command handles payment authorization requests.
 
-**File:** `Logos.Payment.Service.CliHost/Commands/AuthorizeCommand.cs`
+**File:** `MyPaymentService.CliHost/Commands/AuthorizeCommand.cs`
 
 The `AuthorizeCommand` class:
 - Parses CLI arguments (amount, currency, merchant)
@@ -143,11 +143,11 @@ The `AuthorizeCommand` class:
 - Returns exit code based on authorization result
 
 ```csharp
-using Logos.Payment.Service.Core.Application.UseCases;
-using Logos.Payment.Service.Core.Application.Contracts;
-using Logos.Payment.Service.Core.SharedKernel;
+using MyPaymentService.Core.Application.UseCases;
+using MyPaymentService.Core.Application.Contracts;
+using MyPaymentService.Core.SharedKernel;
 
-namespace Logos.Payment.Service.CliHost.Commands;
+namespace MyPaymentService.CliHost.Commands;
 
 /// <summary>
 /// CLI command (transport endpoint) for authorizing payments.
@@ -259,7 +259,7 @@ Amount:         100.00 USD
 
 The get payment command retrieves payment details by ID.
 
-**File:** `Logos.Payment.Service.CliHost/Commands/GetPaymentCommand.cs`
+**File:** `MyPaymentService.CliHost/Commands/GetPaymentCommand.cs`
 
 The `GetPaymentCommand` class:
 - Extracts payment ID from positional argument
@@ -269,10 +269,10 @@ The `GetPaymentCommand` class:
 - Handles not-found case
 
 ```csharp
-using Logos.Payment.Service.Core.Application.UseCases;
-using Logos.Payment.Service.Core.Application.Contracts;
+using MyPaymentService.Core.Application.UseCases;
+using MyPaymentService.Core.Application.Contracts;
 
-namespace Logos.Payment.Service.CliHost.Commands;
+namespace MyPaymentService.CliHost.Commands;
 
 /// <summary>
 /// CLI command (transport endpoint) for retrieving payment details.
@@ -369,17 +369,17 @@ Created At:     2024-12-07 10:30:45
 
 Dependency injection wiring is centralized so that the same Core services can be composed by any host.
 
-**File:** `Logos.Payment.Service.CliHost/Configuration/ServiceConfiguration.cs`
+**File:** `MyPaymentService.CliHost/Configuration/ServiceConfiguration.cs`
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
-using Logos.Payment.Service.Core.Application.UseCases;
-using Logos.Payment.Service.Core.Capabilities;
-using Logos.Payment.Service.Core.Domain.Services;
-using Logos.Payment.Service.Core.SharedKernel;
-using Logos.Payment.Service.Infrastructure.InMemory;
+using MyPaymentService.Core.Application.UseCases;
+using MyPaymentService.Core.Capabilities;
+using MyPaymentService.Core.Domain.Services;
+using MyPaymentService.Core.SharedKernel;
+using MyPaymentService.Infrastructure.InMemory;
 
-namespace Logos.Payment.Service.CliHost.Configuration;
+namespace MyPaymentService.CliHost.Configuration;
 
 public static class ServiceConfiguration
 {
@@ -410,7 +410,7 @@ public static class ServiceConfiguration
 
 The `Program.cs` file wires everything together using top-level statements.
 
-**File:** `Logos.Payment.Service.CliHost/Program.cs`
+**File:** `MyPaymentService.CliHost/Program.cs`
 
 The composition root:
 1. **Parses command line** using `CliParser`
@@ -422,11 +422,11 @@ The composition root:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
-using Logos.Payment.Service.CliHost;
-using Logos.Payment.Service.CliHost.Commands;
-using Logos.Payment.Service.CliHost.Configuration;
-using Logos.Payment.Service.Core.Application.Contracts;
-using Logos.Payment.Service.Core.Application.UseCases;
+using MyPaymentService.CliHost;
+using MyPaymentService.CliHost.Commands;
+using MyPaymentService.CliHost.Configuration;
+using MyPaymentService.Core.Application.Contracts;
+using MyPaymentService.Core.Application.UseCases;
 
 // Parse command-line arguments
 var parser = new CliParser(args);

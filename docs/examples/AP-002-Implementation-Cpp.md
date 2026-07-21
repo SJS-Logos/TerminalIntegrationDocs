@@ -55,7 +55,7 @@ The example structure aligned to AP-002 is organized into the following librarie
 **Location:** [`examples/cpp/`](../../examples/cpp/)
 
 ```
-logos_payment_service_core/
+mypaymentservice_core/
 ├── domain/
 │   ├── entities/
 │   └── services/
@@ -90,9 +90,9 @@ Shared immutable business datatypes belong in `shared_kernel/` and are reused ac
 
 ### Money Value Object
 
-**File:** `logos_payment_service_core/shared_kernel/money/money.h`
+**File:** `mypaymentservice_core/shared_kernel/money/money.h`
 
-**Implementation:** `logos_payment_service_core/shared_kernel/money/money.cpp`
+**Implementation:** `mypaymentservice_core/shared_kernel/money/money.cpp`
 
 The `Money` value object:
 - Stores amounts as integer cents (int64_t) to avoid floating-point precision issues
@@ -107,13 +107,13 @@ See: [Money Implementation Details](../../examples/cpp/MONEY_IMPLEMENTATION.md) 
 
 ### Payment Status
 
-**File:** `logos_payment_service_core/shared_kernel/payment_status.h`
+**File:** `mypaymentservice_core/shared_kernel/payment_status.h`
 
 The `PaymentStatus` enum represents the authorization state (Pending, Authorized, Declined).
 
 ### Payment Record
 
-**File:** `logos_payment_service_core/shared_kernel/payment_record.h`
+**File:** `mypaymentservice_core/shared_kernel/payment_record.h`
 
 The `PaymentRecord` struct represents a complete payment record with identity assigned by the repository.
 
@@ -121,9 +121,9 @@ The `PaymentRecord` struct represents a complete payment record with identity as
 
 Domain services contain business logic and work with Value Objects. They are stateless.
 
-**File:** `logos_payment_service_core/domain/services/payment_authorization_service.h`
+**File:** `mypaymentservice_core/domain/services/payment_authorization_service.h`
 
-**Implementation:** `logos_payment_service_core/domain/services/payment_authorization_service.cpp`
+**Implementation:** `mypaymentservice_core/domain/services/payment_authorization_service.cpp`
 
 The `PaymentAuthorizationService`:
 - Stateless service that performs payment authorization business logic
@@ -139,7 +139,7 @@ Capabilities are domain-owned abstractions that describe what the Domain require
 
 ### Fraud Detection Capability
 
-**File:** `logos_payment_service_core/capabilities/external_services/fraud_detection_service.h`
+**File:** `mypaymentservice_core/capabilities/external_services/fraud_detection_service.h`
 
 The `IFraudDetectionService` interface:
 - Abstract interface owned by the Domain
@@ -148,7 +148,7 @@ The `IFraudDetectionService` interface:
 
 ### Payment Repository Capability
 
-**File:** `logos_payment_service_core/capabilities/persistence/payment_repository.h`
+**File:** `mypaymentservice_core/capabilities/persistence/payment_repository.h`
 
 The `IPaymentRepository` interface:
 - Defines persistence operations in domain terms
@@ -163,17 +163,17 @@ The `IPaymentRepository` interface:
 
 Contract models reference shared business datatypes from `shared_kernel/`.
 
-**Authorize Payment Request:** `logos_payment_service_core/application/contracts/authorize_payment_request.h`
+**Authorize Payment Request:** `mypaymentservice_core/application/contracts/authorize_payment_request.h`
 
-**Authorize Payment Response:** `logos_payment_service_core/application/contracts/authorize_payment_response.h`
+**Authorize Payment Response:** `mypaymentservice_core/application/contracts/authorize_payment_response.h`
 
-**Get Payment Response:** `logos_payment_service_core/application/contracts/get_payment_response.h`
+**Get Payment Response:** `mypaymentservice_core/application/contracts/get_payment_response.h`
 
 Contract models reference `Money` and other Value Objects directly from the Domain - no duplication.
 
 ## 4.2 Service Container (Dependency Injection)
 
-**File:** `logos_payment_service_core/application/container/service_container.h`
+**File:** `mypaymentservice_core/application/container/service_container.h`
 
 A simple template-based service container that:
 - Owns service instances with `unique_ptr`
@@ -187,9 +187,9 @@ Use cases receive their dependencies through constructor injection.
 
 ### Authorize Payment Use Case
 
-**File:** `logos_payment_service_core/application/use_cases/authorize_payment_use_case.h`
+**File:** `mypaymentservice_core/application/use_cases/authorize_payment_use_case.h`
 
-**Implementation:** `logos_payment_service_core/application/use_cases/authorize_payment_use_case.cpp`
+**Implementation:** `mypaymentservice_core/application/use_cases/authorize_payment_use_case.cpp`
 
 The `AuthorizePaymentUseCase`:
 - Orchestrates payment authorization workflow
@@ -199,9 +199,9 @@ The `AuthorizePaymentUseCase`:
 
 ### Get Payment Use Case
 
-**File:** `logos_payment_service_core/application/use_cases/get_payment_use_case.h`
+**File:** `mypaymentservice_core/application/use_cases/get_payment_use_case.h`
 
-**Implementation:** `logos_payment_service_core/application/use_cases/get_payment_use_case.cpp`
+**Implementation:** `mypaymentservice_core/application/use_cases/get_payment_use_case.cpp`
 
 Simple retrieval use case that queries the repository.
 
@@ -211,7 +211,7 @@ Simple retrieval use case that queries the repository.
 
 Configuration is loaded and services are registered in a container.
 
-**File:** `logos_payment_service_cli_host/main.cpp`
+**File:** `mypaymentservice_cli_host/main.cpp`
 
 The composition root:
 - Creates the service container
@@ -235,7 +235,7 @@ The key point for AP-002 is:
 
 # 7. Key Points
 
-1. **The Core has no Host dependencies**: `logos_payment_service_core` links against no Host targets.
+1. **The Core has no Host dependencies**: `mypaymentservice_core` links against no Host targets.
 
 2. **`application/` depends inward**: it references only `domain/`, `shared_kernel/`, and `capabilities/`.
 
@@ -272,7 +272,7 @@ Example test structure:
 #include <gmock/gmock.h>
 #include "domain/services/payment_authorization_service.h"
 
-using namespace logos::payment::service::core::domain;
+using namespace mypaymentservice::core::domain;
 
 class MockFraudDetectionService : public abstractions::IFraudDetectionService {
 public:

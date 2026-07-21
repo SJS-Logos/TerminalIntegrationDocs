@@ -11,7 +11,7 @@
 
 This example demonstrates how to add a message broker consumer Host Unit that receives messages from RabbitMQ and invokes use cases from the [C++ implementation example](AP-002-Implementation-Cpp.md). It is the C++ equivalent of the [RabbitMQ Host Example - C#](AP-003-MassTransit-Consumer-CSharp.md) and shares the same Core as the CLI and HTTP hosts.
 
-The full source for this example lives at [`examples/cpp/logos_payment_service_rabbitmq_host/`](../../examples/cpp/logos_payment_service_rabbitmq_host/README.md).
+The full source for this example lives at [`examples/cpp/mypaymentservice_rabbitmq_host/`](../../examples/cpp/mypaymentservice_rabbitmq_host/README.md).
 
 **Key Points:**
 - Consumes `AuthorizePaymentCommand` messages from a RabbitMQ queue
@@ -27,12 +27,12 @@ Like every AP-003 transport endpoint, the consumer contains **no business logic*
 ## 2. Project Structure
 
 ```
-logos_payment_service_core/                     (From AP-002 example)
+mypaymentservice_core/                     (From AP-002 example)
 ??? domain/
 ??? shared_kernel/
 ??? capabilities/
 ??? application/
-logos_payment_service_rabbitmq_host/            (Message broker incoming)
+mypaymentservice_rabbitmq_host/            (Message broker incoming)
 ??? messages/
 ?   ??? authorize_payment_command.h             # Incoming message contract
 ?   ??? payment_authorized_event.h              # Outgoing message contract
@@ -89,14 +89,14 @@ logos_payment_service_rabbitmq_host/            (Message broker incoming)
 The consumer is the C++ equivalent of the C# `IConsumer<AuthorizePaymentCommand>`. It receives a raw payload, maps it to an Application Contract, invokes the Use Case, and produces a serialized `PaymentAuthorizedEvent` to publish. It holds a non-owning pointer to the Use Case and contains no business logic.
 
 ```cpp
-// logos_payment_service_rabbitmq_host/consumers/authorize_payment_consumer.h
+// mypaymentservice_rabbitmq_host/consumers/authorize_payment_consumer.h
 #pragma once
 
 #include <string>
 
-#include "logos_payment_service_core/application/use_cases/authorize_payment_use_case.h"
+#include "mypaymentservice_core/application/use_cases/authorize_payment_use_case.h"
 
-namespace logos::payment::service::rabbitmq_host::consumers {
+namespace mypaymentservice::rabbitmq_host::consumers {
 
 /// @brief Transport endpoint (consumer) for payment authorization messages.
 /// @note This consumer contains NO business logic. All business decisions are
@@ -115,11 +115,11 @@ private:
     core::application::use_cases::AuthorizePaymentUseCase* authorize_use_case_;  // Non-owning
 };
 
-} // namespace logos::payment::service::rabbitmq_host::consumers
+} // namespace mypaymentservice::rabbitmq_host::consumers
 ```
 
 ```cpp
-// logos_payment_service_rabbitmq_host/consumers/authorize_payment_consumer.cpp
+// mypaymentservice_rabbitmq_host/consumers/authorize_payment_consumer.cpp
 std::string AuthorizePaymentConsumer::Consume(const std::string& message_payload) {
     // Deserialize transport message.
     auto command_opt = mappings::MessageMapping::ParseAuthorizeCommand(message_payload);
@@ -234,7 +234,7 @@ The pattern is simple: consume message -> map to contract -> invoke use case -> 
 - [RabbitMQ Host Example - C#](AP-003-MassTransit-Consumer-CSharp.md) - C# equivalent
 - [HTTP Host Example - C++](AP-003-HTTP-Controller-Cpp.md) - HTTP equivalent
 - [CLI Host Example - C++](AP-003-CLI-Cpp.md) - CLI equivalent
-- [RabbitMQ Host source and README](../../examples/cpp/logos_payment_service_rabbitmq_host/README.md) - Full runnable example
+- [RabbitMQ Host source and README](../../examples/cpp/mypaymentservice_rabbitmq_host/README.md) - Full runnable example
 - AP-003 - Incoming Implementations (specification)
 
 **End of Document**

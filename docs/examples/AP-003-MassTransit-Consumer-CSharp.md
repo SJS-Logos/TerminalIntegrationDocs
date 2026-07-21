@@ -13,7 +13,7 @@ This example demonstrates how to add a MassTransit consumer (message handler) th
 
 > **?? Compilable Example Available**  
 > A fully compilable version of this example is available at:  
-> `Logos.Payment.Service.MasstransitHost/`  
+> `MyPaymentService.MasstransitHost/`  
 >
 > The consumer implementation is ready to use. See the [README](../../examples/csharp/README.md) for integration instructions.
 
@@ -30,12 +30,12 @@ This example demonstrates how to add a MassTransit consumer (message handler) th
 
 ## 2. Project Structure
 
-**Location:** `Logos.Payment.Service.MasstransitHost/`
+**Location:** `MyPaymentService.MasstransitHost/`
 
 The Host Unit is a standalone application that shows how technology is initialized close to the incoming implementation:
 
 ```
-Logos.Payment.Service.MasstransitHost/
+MyPaymentService.MasstransitHost/
 |-- Consumers/
 |   `-- AuthorizePaymentConsumer.cs
 |-- Mappings/
@@ -47,7 +47,7 @@ Logos.Payment.Service.MasstransitHost/
 ```
 
 The Host depends on:
-- `Logos.Payment.Service.Core` - Use cases and contracts
+- `MyPaymentService.Core` - Use cases and contracts
 - `MassTransit` + `MassTransit.RabbitMQ` - Messaging technology
 
 **Key Point:** Technology (MassTransit, RabbitMQ) is initialized in `Program.cs`, close to where it's used, NOT in the domain or application layers.
@@ -58,7 +58,7 @@ The Host depends on:
 
 ### 3.1 Command Message
 
-**File:** `Logos.Payment.Service.MasstransitHost/Mappings/AuthorizePaymentCommand.cs`
+**File:** `MyPaymentService.MasstransitHost/Mappings/AuthorizePaymentCommand.cs`
 
 The command message:
 - Represents the incoming message from the broker
@@ -68,7 +68,7 @@ The command message:
 
 ### 3.2 Event Message
 
-**File:** `Logos.Payment.Service.MasstransitHost/Mappings/PaymentAuthorizedEvent.cs`
+**File:** `MyPaymentService.MasstransitHost/Mappings/PaymentAuthorizedEvent.cs`
 
 The event message:
 - Published after payment authorization completes
@@ -79,7 +79,7 @@ The event message:
 
 ## 4. Consumer Implementation
 
-**File:** `Logos.Payment.Service.MasstransitHost/Consumers/AuthorizePaymentConsumer.cs`
+**File:** `MyPaymentService.MasstransitHost/Consumers/AuthorizePaymentConsumer.cs`
 
 The consumer:
 - Implements `IConsumer<AuthorizePaymentCommand>`

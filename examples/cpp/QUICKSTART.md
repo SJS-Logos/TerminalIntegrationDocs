@@ -146,8 +146,8 @@ The application demonstrates several business rules:
 
 The compiled executable demonstrates:
 
-- **Core Unit** (`logos_payment_service_core.lib`): Domain, SharedKernel, Capabilities, and Application - pure business logic with no Host dependencies
-- **Infrastructure Unit** (`logos_payment_service_infrastructure.lib`): Capability implementations (in-memory storage, simple fraud detection)
+- **Core Unit** (`mypaymentservice_core.lib`): Domain, SharedKernel, Capabilities, and Application - pure business logic with no Host dependencies
+- **Infrastructure Unit** (`mypaymentservice_infrastructure.lib`): Capability implementations (in-memory storage, simple fraud detection)
 - **CLI Host Unit** (`payment_cli.exe`): Command-line interface entry point
 
 ## Troubleshooting

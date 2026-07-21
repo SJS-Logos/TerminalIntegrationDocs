@@ -34,11 +34,11 @@ This example demonstrates a command-line interface (CLI) that invokes use cases 
 
 ## 2. Project Structure
 
-**Location:** `logos_payment_service_cli_host/`
+**Location:** `mypaymentservice_cli_host/`
 
 ```
-logos_payment_service_core/                    (From AP-002 example)
-logos_payment_service_cli_host/
+mypaymentservice_core/                    (From AP-002 example)
+mypaymentservice_cli_host/
 +-- commands/
 |   +-- authorize_command.h/.cpp
 |   +-- get_payment_command.h/.cpp
@@ -56,9 +56,9 @@ logos_payment_service_cli_host/
 
 The CLI parser extracts commands, options, flags, and positional arguments from the command line.
 
-**Header:** `logos_payment_service_cli_host/cli_parser.h`
+**Header:** `mypaymentservice_cli_host/cli_parser.h`
 
-**Implementation:** `logos_payment_service_cli_host/cli_parser.cpp`
+**Implementation:** `mypaymentservice_cli_host/cli_parser.cpp`
 
 The `CliParser` class:
 - Extracts command name (first argument)
@@ -68,7 +68,7 @@ The `CliParser` class:
 - Provides type-safe accessors
 
 ```cpp
-// logos_payment_service_cli_host/cli_parser.cpp
+// mypaymentservice_cli_host/cli_parser.cpp
 CliParser::CliParser(int argc, char* argv[]) {
     if (argc < 2) {
         return;
@@ -116,7 +116,7 @@ bool CliParser::IsValid() const {
     return !command_.empty();
 }
 
-} // namespace logos::payment_service::cli
+} // namespace mypaymentservice::cli
 ```
 
 ---
@@ -125,9 +125,9 @@ bool CliParser::IsValid() const {
 
 The authorize command handles payment authorization requests.
 
-**Header:** `logos_payment_service_cli_host/commands/authorize_command.h`
+**Header:** `mypaymentservice_cli_host/commands/authorize_command.h`
 
-**Implementation:** `logos_payment_service_cli_host/commands/authorize_command.cpp`
+**Implementation:** `mypaymentservice_cli_host/commands/authorize_command.cpp`
 
 The `AuthorizeCommand` class:
 - Parses CLI arguments (amount, currency, merchant)
@@ -140,13 +140,13 @@ The `AuthorizeCommand` class:
 ### 4.1 Command Header
 
 ```cpp
-// logos_payment_service_cli_host/commands/authorize_command.h
+// mypaymentservice_cli_host/commands/authorize_command.h
 #pragma once
 
 #include "application/use_cases/authorize_payment_use_case.h"
 #include "cli_parser.h"
 
-namespace logos::payment_service::cli::commands {
+namespace mypaymentservice::cli::commands {
 
 /// @brief CLI command for authorizing payments
 /// @details Parses CLI arguments and invokes AuthorizePaymentUseCase
@@ -170,19 +170,19 @@ private:
     application::use_cases::AuthorizePaymentUseCase* use_case_;  // Non-owning
 };
 
-} // namespace logos::payment_service::cli::commands
+} // namespace mypaymentservice::cli::commands
 ```
 
 ### 4.2 Command Implementation
 
 ```cpp
-// logos_payment_service_cli_host/commands/authorize_command.cpp
+// mypaymentservice_cli_host/commands/authorize_command.cpp
 #include "authorize_command.h"
 #include "domain/value_objects/money.h"
 #include <iostream>
 #include <iomanip>
 
-namespace logos::payment_service::cli::commands {
+namespace mypaymentservice::cli::commands {
 
 AuthorizeCommand::AuthorizeCommand(
     application::use_cases::AuthorizePaymentUseCase* use_case)
@@ -268,7 +268,7 @@ std::string AuthorizeCommand::PaymentStatusToString(
     }
 }
 
-} // namespace logos::payment_service::cli::commands
+} // namespace mypaymentservice::cli::commands
 ```
 
 **Usage Example:**
@@ -292,9 +292,9 @@ Amount:         100.00 USD
 
 The get payment command retrieves payment details by ID.
 
-**Header:** `logos_payment_service_cli_host/commands/get_payment_command.h`
+**Header:** `mypaymentservice_cli_host/commands/get_payment_command.h`
 
-**Implementation:** `logos_payment_service_cli_host/commands/get_payment_command.cpp`
+**Implementation:** `mypaymentservice_cli_host/commands/get_payment_command.cpp`
 
 The `GetPaymentCommand` class:
 - Extracts payment ID from positional argument
@@ -306,13 +306,13 @@ The `GetPaymentCommand` class:
 ### 5.1 Command Header
 
 ```cpp
-// logos_payment_service_cli_host/commands/get_payment_command.h
+// mypaymentservice_cli_host/commands/get_payment_command.h
 #pragma once
 
 #include "application/use_cases/get_payment_use_case.h"
 #include "cli_parser.h"
 
-namespace logos::payment_service::cli::commands {
+namespace mypaymentservice::cli::commands {
 
 /// @brief CLI command for retrieving payment details
 /// @details Parses CLI arguments and invokes GetPaymentUseCase
@@ -335,19 +335,19 @@ private:
     application::use_cases::GetPaymentUseCase* use_case_;  // Non-owning
 };
 
-} // namespace logos::payment_service::cli::commands
+} // namespace mypaymentservice::cli::commands
 ```
 
 ### 5.2 Command Implementation
 
 ```cpp
-// logos_payment_service_cli_host/commands/get_payment_command.cpp
+// mypaymentservice_cli_host/commands/get_payment_command.cpp
 #include "get_payment_command.h"
 #include <iostream>
 #include <iomanip>
 #include <ctime>
 
-namespace logos::payment_service::cli::commands {
+namespace mypaymentservice::cli::commands {
 
 GetPaymentCommand::GetPaymentCommand(
     application::use_cases::GetPaymentUseCase* use_case)
@@ -424,7 +424,7 @@ std::string GetPaymentCommand::PaymentStatusToString(
     }
 }
 
-} // namespace logos::payment_service::cli::commands
+} // namespace mypaymentservice::cli::commands
 ```
 
 **Usage Example:**
@@ -449,7 +449,7 @@ Created At:     2024-12-07 10:30:45
 
 The main function wires everything together.
 
-**File:** `logos_payment_service_cli_host/main.cpp`
+**File:** `mypaymentservice_cli_host/main.cpp`
 
 The composition root:
 1. **Parses command line** using `CliParser`
@@ -461,7 +461,7 @@ The composition root:
 7. **Executes command** and returns exit code
 
 ```cpp
-// logos_payment_service_cli_host/main.cpp
+// mypaymentservice_cli_host/main.cpp
 #include <iostream>
 #include <memory>
 #include "cli_parser.h"
@@ -473,7 +473,7 @@ The composition root:
 #include "adapters/sqlite_payment_repository.h"
 #include "adapters/fraud_detection_service.h"
 
-using namespace logos::payment_service;
+using namespace mypaymentservice;
 
 void PrintUsage() {
     std::cout << "Usage: payment-cli <command> [OPTIONS]\n\n";
@@ -555,25 +555,25 @@ int main(int argc, char* argv[]) {
 
 ```cmake
 # CLI application
-add_executable(logos_payment_service_cli_host
+add_executable(mypaymentservice_cli_host
     main.cpp
     cli_parser.cpp
     commands/authorize_command.cpp
     commands/get_payment_command.cpp
 )
 
-target_link_libraries(logos_payment_service_cli_host
-    logos_payment_service_application
-    logos_payment_service_domain
-    logos_payment_service_adapters
+target_link_libraries(mypaymentservice_cli_host
+    mypaymentservice_application
+    mypaymentservice_domain
+    mypaymentservice_adapters
 )
 
-target_include_directories(logos_payment_service_cli_host PRIVATE
+target_include_directories(mypaymentservice_cli_host PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Install
-install(TARGETS logos_payment_service_cli_host
+install(TARGETS mypaymentservice_cli_host
     RUNTIME DESTINATION bin
     RENAME payment-cli
 )

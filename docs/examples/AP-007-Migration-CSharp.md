@@ -17,8 +17,8 @@ This example demonstrates how **schema migration** is integrated when a Persiste
 
 > **Compilable Example Available**  
 > A fully compilable and runnable version lives in the C# solution:  
-> - Adapter: `Logos.Payment.Service.Infrastructure.EntityFramework/`  
-> - Host with startup migration: `Logos.Payment.Service.EntityFrameworkHost/`  
+> - Adapter: `MyPaymentService.Infrastructure.EntityFramework/`  
+> - Host with startup migration: `MyPaymentService.EntityFrameworkHost/`  
 >
 > See the [README](../../examples/csharp/README.md) for build and run instructions.
 
@@ -39,18 +39,18 @@ The Capability the core depends on is unchanged by migration - it stays in domai
 
 | Responsibility | File |
 | --- | --- |
-| Capability (unchanged by migration) | Logos.Payment.Service.Core/Capabilities/IPaymentRepository.cs |
-| Technology-scope persistence model (SQL row) | Logos.Payment.Service.Infrastructure.EntityFramework/PaymentRow.cs |
-| DbContext (confined to the Adapter Unit) | Logos.Payment.Service.Infrastructure.EntityFramework/PaymentDbContext.cs |
-| Repository translation (domain to SQL) | Logos.Payment.Service.Infrastructure.EntityFramework/EntityFrameworkPaymentRepository.cs |
-| Initialization contract (shared, opt-in) | Logos.Payment.Service.Hosting.Abstractions/IAdapterInitializer.cs |
-| Migration routine (idempotent MigrateAsync) | Logos.Payment.Service.Infrastructure.EntityFramework/EntityFrameworkMigrator.cs |
-| Target version as Adapter configuration | Logos.Payment.Service.Infrastructure.EntityFramework/PersistenceOptions.cs |
-| Adapter registration | Logos.Payment.Service.Infrastructure.EntityFramework/InfrastructureRegistration.cs |
-| Generic init loop (runs all registered initializers) | Logos.Payment.Service.EntityFrameworkHost/Configuration/ServiceConfiguration.cs |
-| Generated EF migration | Logos.Payment.Service.Infrastructure.EntityFramework/Migrations/ |
-| Host wiring (invokes, does not contain, migration) | Logos.Payment.Service.EntityFrameworkHost/Configuration/ServiceConfiguration.cs |
-| Entry point: readiness before traffic | Logos.Payment.Service.EntityFrameworkHost/Program.cs |
+| Capability (unchanged by migration) | MyPaymentService.Core/Capabilities/IPaymentRepository.cs |
+| Technology-scope persistence model (SQL row) | MyPaymentService.Infrastructure.EntityFramework/PaymentRow.cs |
+| DbContext (confined to the Adapter Unit) | MyPaymentService.Infrastructure.EntityFramework/PaymentDbContext.cs |
+| Repository translation (domain to SQL) | MyPaymentService.Infrastructure.EntityFramework/EntityFrameworkPaymentRepository.cs |
+| Initialization contract (shared, opt-in) | MyPaymentService.Hosting.Abstractions/IAdapterInitializer.cs |
+| Migration routine (idempotent MigrateAsync) | MyPaymentService.Infrastructure.EntityFramework/EntityFrameworkMigrator.cs |
+| Target version as Adapter configuration | MyPaymentService.Infrastructure.EntityFramework/PersistenceOptions.cs |
+| Adapter registration | MyPaymentService.Infrastructure.EntityFramework/InfrastructureRegistration.cs |
+| Generic init loop (runs all registered initializers) | MyPaymentService.EntityFrameworkHost/Configuration/ServiceConfiguration.cs |
+| Generated EF migration | MyPaymentService.Infrastructure.EntityFramework/Migrations/ |
+| Host wiring (invokes, does not contain, migration) | MyPaymentService.EntityFrameworkHost/Configuration/ServiceConfiguration.cs |
+| Entry point: readiness before traffic | MyPaymentService.EntityFrameworkHost/Program.cs |
 
 ---
 

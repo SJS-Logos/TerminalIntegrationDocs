@@ -13,7 +13,7 @@ This example demonstrates how to add an HTTP controller that receives requests a
 
 > **📦 Compilable Example Available**  
 > A fully compilable and runnable version of this example is available at:  
-> `Logos.Payment.Service.HttpHost/`  
+> `MyPaymentService.HttpHost/`  
 >
 > See the [README](../../examples/csharp/README.md) for build and run instructions.
 
@@ -30,7 +30,7 @@ This example demonstrates how to add an HTTP controller that receives requests a
 
 ### 2.1 Payment Controller
 
-**File:** `Logos.Payment.Service.HttpHost/Controllers/PaymentsController.cs`
+**File:** `MyPaymentService.HttpHost/Controllers/PaymentsController.cs`
 
 The `PaymentsController`:
 - Receives HTTP requests via ASP.NET Core
@@ -59,7 +59,7 @@ See the implementation in the controller file for examples of:
 - XML documentation with `<see cref>` references to domain contracts
 - Swagger/OpenAPI integration
 
-**File:** `Logos.Payment.Service.HttpHost/Mappings/PaymentsHttpMapping.cs`
+**File:** `MyPaymentService.HttpHost/Mappings/PaymentsHttpMapping.cs`
 
 The DTOs defined inline in the controller demonstrate:
 - Simple property mapping (HTTP decimal/string -> Domain Money)
@@ -70,7 +70,7 @@ The DTOs defined inline in the controller demonstrate:
 
 ## 4. Swagger/OpenAPI Configuration
 
-**File:** `Logos.Payment.Service.HttpHost/Configuration/ServiceConfiguration.cs`
+**File:** `MyPaymentService.HttpHost/Configuration/ServiceConfiguration.cs`
 
 The Program.cs configures Swagger with:
 - OpenAPI document generation
@@ -115,12 +115,12 @@ This approach:
 ## 5. Program.cs Configuration
 
 ```csharp
-// Logos.Payment.Service.HttpHost/Program.cs
-using Logos.Payment.Service.Core.Application.UseCases;
-using Logos.Payment.Service.Core.Domain.Services;
-using Logos.Payment.Service.Core.Capabilities.Persistence;
-using Logos.Payment.Service.Core.Capabilities.ExternalServices;
-using Logos.Payment.Service.Core.SharedKernel.Money;
+// MyPaymentService.HttpHost/Program.cs
+using MyPaymentService.Core.Application.UseCases;
+using MyPaymentService.Core.Domain.Services;
+using MyPaymentService.Core.Capabilities.Persistence;
+using MyPaymentService.Core.Capabilities.ExternalServices;
+using MyPaymentService.Core.SharedKernel.Money;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -168,13 +168,13 @@ app.Run();
 ## 6. Project Structure
 
 ```
-Logos.Payment.Service.Core/                    (From AP-002 example)
+MyPaymentService.Core/                    (From AP-002 example)
 ├── Domain/
 ├── SharedKernel/
 ├── Capabilities/
 └── Application/
 
-Logos.Payment.Service.HttpHost/                (HTTP incoming)
+MyPaymentService.HttpHost/                (HTTP incoming)
 ├── Controllers/
 │   └── PaymentsController.cs
 ├── Mappings/
@@ -247,7 +247,7 @@ No mediator, command bus, or additional abstraction layer. The controller depend
 To run the compilable example:
 
 ```bash
-cd examples/csharp/Logos.PaymentService.WebApi
+cd examples/csharp/MyPaymentService.WebApi
 dotnet run
 ```
 

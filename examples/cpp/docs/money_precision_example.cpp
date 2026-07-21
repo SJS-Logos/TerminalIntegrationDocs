@@ -1,11 +1,11 @@
 // Example demonstrating Money precision vs floating-point
 // This is NOT part of the build - just for documentation
 
-#include "logos_payment_service_domain/value_objects/money.h"
+#include "mypaymentservice_domain/value_objects/money.h"
 #include <iostream>
 #include <iomanip>
 
-using namespace logos::payment_service::domain::value_objects;
+using namespace mypaymentservice::domain::value_objects;
 
 int main() {
     std::cout << std::fixed << std::setprecision(20);

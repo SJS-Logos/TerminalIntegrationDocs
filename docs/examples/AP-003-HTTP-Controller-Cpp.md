@@ -28,12 +28,12 @@ This example demonstrates how to add an HTTP controller using Qt's HTTP server t
 ## 2. Project Structure
 
 ```
-logos_payment_service_core/                     (From AP-002 example)
+mypaymentservice_core/                     (From AP-002 example)
 ├── domain/
 ├── shared_kernel/
 ├── capabilities/
 └── application/
-logos_payment_service_http_host/                (HTTP incoming)
+mypaymentservice_http_host/                (HTTP incoming)
 ├── controllers/
 │   ├── payments_controller.h
 │   ├── payments_controller.cpp
@@ -53,7 +53,7 @@ logos_payment_service_http_host/                (HTTP incoming)
 ### 3.1 Payment DTOs
 
 ```cpp
-// logos_payment_service_http_host/mappings/payment_dto.h
+// mypaymentservice_http_host/mappings/payment_dto.h
 #pragma once
 
 #include <QJsonObject>
@@ -61,7 +61,7 @@ logos_payment_service_http_host/                (HTTP incoming)
 #include <QDateTime>
 #include <optional>
 
-namespace logos::payment::service::http_host::mappings {
+namespace mypaymentservice::http_host::mappings {
 
 /// @brief HTTP request for payment authorization
 /// @details Maps to application::contracts::AuthorizePaymentRequest
@@ -111,17 +111,17 @@ struct PaymentDetailsDto {
     QJsonObject ToJson() const;
 };
 
-} // namespace logos::payment_service::http::models
+} // namespace mypaymentservice::http::models
 ```
 
 ### 3.2 DTO Implementation
 
 ```cpp
-// logos_payment_service_http_host/mappings/payment_dto.cpp
+// mypaymentservice_http_host/mappings/payment_dto.cpp
 #include "payment_dto.h"
 #include <QJsonValue>
 
-namespace logos::payment::service::http_host::mappings {
+namespace mypaymentservice::http_host::mappings {
 
 std::optional<AuthorizePaymentDto> AuthorizePaymentDto::FromJson(const QJsonObject& json) {
     if (!json.contains("amount") || !json.contains("currency") || !json.contains("merchantId")) {
@@ -175,7 +175,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
     return json;
 }
 
-} // namespace logos::payment_service::http::models
+} // namespace mypaymentservice::http::models
 ```
 
 ---
@@ -185,7 +185,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 ### 4.1 Controller Header
 
 ```cpp
-// logos_payment_service_http_host/controllers/payments_controller.h
+// mypaymentservice_http_host/controllers/payments_controller.h
 #pragma once
 
 #include <QHttpServerRequest>
@@ -194,7 +194,7 @@ QJsonObject PaymentDetailsDto::ToJson() const {
 #include "application/use_cases/authorize_payment_use_case.h"
 #include "application/use_cases/get_payment_use_case.h"
 
-namespace logos::payment::service::http_host::controllers {
+namespace mypaymentservice::http_host::controllers {
 
 /// @brief HTTP controller for payment operations
 /// @details Handles HTTP requests for payment authorization and retrieval.
@@ -254,20 +254,20 @@ private:
     application::use_cases::GetPaymentUseCase* get_use_case_;              // Non-owning
 };
 
-} // namespace logos::payment_service::http::controllers
+} // namespace mypaymentservice::http::controllers
 ```
 
 ### 4.2 Controller Implementation
 
 ```cpp
-// logos_payment_service_http/controllers/payments_controller.cpp
+// mypaymentservice_http/controllers/payments_controller.cpp
 #include "payments_controller.h"
 #include "models/payment_dto.h"
 #include "domain/value_objects/money.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 
-namespace logos::payment_service::http::controllers {
+namespace mypaymentservice::http::controllers {
 
 PaymentsController::PaymentsController(application::container::ServiceContainer* container) {
     // Resolve use cases from container
@@ -368,7 +368,7 @@ std::string PaymentsController::PaymentStatusToString(
     }
 }
 
-} // namespace logos::payment_service::http::controllers
+} // namespace mypaymentservice::http::controllers
 ```
 
 ---
@@ -378,14 +378,14 @@ std::string PaymentsController::PaymentStatusToString(
 ### 5.1 HTTP Server
 
 ```cpp
-// logos_payment_service_http/http_server.h
+// mypaymentservice_http/http_server.h
 #pragma once
 
 #include <QHttpServer>
 #include "application/container/service_container.h"
 #include "controllers/payments_controller.h"
 
-namespace logos::payment_service::http {
+namespace mypaymentservice::http {
 
 /// @brief HTTP server for payment service
 /// @details Configures routes and starts Qt HTTP server
@@ -406,16 +406,16 @@ private:
     std::unique_ptr<controllers::PaymentsController> payments_controller_;
 };
 
-} // namespace logos::payment_service::http
+} // namespace mypaymentservice::http
 ```
 
 ### 5.2 Server Implementation
 
 ```cpp
-// logos_payment_service_http/http_server.cpp
+// mypaymentservice_http/http_server.cpp
 #include "http_server.h"
 
-namespace logos::payment_service::http {
+namespace mypaymentservice::http {
 
 HttpServer::HttpServer(application::container::ServiceContainer* container) {
     // Create controller with container
@@ -446,7 +446,7 @@ void HttpServer::Stop() {
     // Qt HTTP server stops automatically on destruction
 }
 
-} // namespace logos::payment_service::http
+} // namespace mypaymentservice::http
 ```
 
 ---
@@ -454,7 +454,7 @@ void HttpServer::Stop() {
 ## 6. Main Entry Point
 
 ```cpp
-// logos_payment_service_http/main.cpp
+// mypaymentservice_http/main.cpp
 #include <QCoreApplication>
 #include <QDebug>
 #include "http_server.h"
@@ -467,10 +467,10 @@ int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
 
     // Load configuration (simplified - use proper config library)
-    auto maximum_amount = logos::payment_service::domain::value_objects::Money(10000.0, "USD");
+    auto maximum_amount = mypaymentservice::domain::value_objects::Money(10000.0, "USD");
 
     // Create service container
-    logos::payment_service::application::container::ServiceContainer container;
+    mypaymentservice::application::container::ServiceContainer container;
 
     // Register capability implementations (container takes ownership)
     container.Register<domain::abstractions::IPaymentRepository>(
@@ -497,7 +497,7 @@ int main(int argc, char* argv[]) {
             container.Resolve<domain::abstractions::IPaymentRepository>()));
 
     // Start HTTP server
-    logos::payment_service::http::HttpServer server(&container);
+    mypaymentservice::http::HttpServer server(&container);
 
     if (!server.Start(8080)) {
         qCritical() << "Failed to start HTTP server";
@@ -616,27 +616,27 @@ This generates HTML documentation with clickable links to domain types.
 
 ```cmake
 # HTTP server library
-add_executable(logos_payment_service_http
+add_executable(mypaymentservice_http
     main.cpp
     http_server.cpp
     controllers/payments_controller.cpp
     models/payment_dto.cpp
 )
 
-target_link_libraries(logos_payment_service_http
-    logos_payment_service_application
-    logos_payment_service_domain
-    logos_payment_service_adapters
+target_link_libraries(mypaymentservice_http
+    mypaymentservice_application
+    mypaymentservice_domain
+    mypaymentservice_adapters
     Qt6::Core
     Qt6::HttpServer
 )
 
-target_include_directories(logos_payment_service_http PRIVATE
+target_include_directories(mypaymentservice_http PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Install
-install(TARGETS logos_payment_service_http
+install(TARGETS mypaymentservice_http
     RUNTIME DESTINATION bin
 )
 ```
