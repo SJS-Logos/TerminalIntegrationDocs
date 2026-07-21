@@ -108,7 +108,13 @@ It MUST be propagated across service boundaries and MUST NOT influence execution
 - The server takes ownership only when it returns a terminal success response: `200 OK` or `201 Created`. At that point the associated data is durably persisted and MUST survive server restart.
 - A `202 Accepted` response does **not** transfer ownership. It is a best-effort acknowledgment that the request was received; the associated Execution Record MAY reside in non-durable host storage and MAY be lost on power cycle.
 
-Because ownership is confirmed only by `200`/`201`, the default client behavior is to **retry the request with the same Idempotency-Key until it observes a terminal `200`/`201` response** (Sections 8 and 9). A retried request whose earlier `202`-acknowledged record did not survive MAY be treated by the server as a new command execution.
+Because ownership is confirmed only by `200`/`201`, the default client behavior is to **retry the request with the same Idempotency-Key until it observes a terminal `200`/`201` response** (Sections 8 and 9). A retried request whose earlier `202`-acknowledged record did not survive MAY begin a new attempt, subject to the Irreversible Effect Rule below.
+
+### Irreversible Effect Rule
+
+Before performing an irreversible domain effect or invoking an irreversible external operation, the server MUST durably persist sufficient idempotency state to identify the logical command and replay its terminal outcome. A `202 Accepted` response alone does not satisfy this requirement.
+
+If the HTTP host cannot provide that persistence, it MUST defer the irreversible effect until durable ownership can be taken, or delegate the effect to a Domain component that provides its own durable idempotency guarantee. A lost `202` record MAY cause reversible or preparatory work to be attempted again, but MUST NOT permit an irreversible effect to be performed more than once.
 
 ---
 
@@ -195,7 +201,7 @@ If a request is received with an existing, still-available Execution Record for 
 
 While the Execution Record is still `Pending` or `Running`, the server MUST return `202 Accepted` for the replayed request. Once ownership has been taken and the record reaches `Completed` or `Failed`, the server MUST return the terminal `200`/`201` response.
 
-Because a `202`-acknowledged Execution Record is not durable (Sections 4.5 and 6.2), a replayed request MAY arrive after its earlier record has been lost. In that case the server has not taken ownership, and it MAY treat the request as a new command execution. This is safe precisely because the client identifies the command by its Idempotency-Key: the command is either resumed from a surviving record or executed anew, and ownership is confirmed only by a terminal `200`/`201`.
+Because a `202`-acknowledged Execution Record is not durable (Sections 4.5 and 6.2), a replayed request MAY arrive after its earlier record has been lost. In that case the server has not taken ownership and MAY begin a new **attempt**. The attempt MUST comply with the Irreversible Effect Rule (Section 4.5): it MAY repeat reversible or preparatory work, but MUST NOT repeat an irreversible domain or external effect unless durable idempotency state protects that effect. Ownership is confirmed only by a terminal `200`/`201`.
 
 ---
 
@@ -224,7 +230,7 @@ If a client loses the response to a request:
 If the server crashes after issuing a `202 Accepted` response:
 
 - The Execution Record MAY have been lost, because a `202` acknowledgment is non-durable and does not transfer ownership (Sections 4.5 and 6.2)  
-- On retry with the same Idempotency-Key, the server MUST resume from a surviving record if one exists, or MAY treat the request as a new command execution if the record did not survive  
+- On retry with the same Idempotency-Key, the server MUST resume from a surviving record if one exists, or MAY begin a new attempt if the record did not survive; that attempt MUST comply with the Irreversible Effect Rule (Section 4.5)  
 - The client MUST continue retrying until it observes a terminal `200`/`201` response, at which point ownership has been durably taken
 
 ---
@@ -279,7 +285,7 @@ A `428` response distinguishes the probe-miss case from `404 Not Found` (an unkn
 
 The server MUST persist Execution Records in durable storage before taking **ownership** of a command — that is, before returning a terminal `200 OK` or `201 Created` response.
 
-A `202 Accepted` response does NOT require durable persistence; hosts that cannot guarantee durability MAY hold the interim Execution Record in non-durable storage that is lost on power cycle (Sections 4.5 and 6.2). Failure to durably persist before a terminal `200`/`201` MUST prevent that terminal response from being returned.
+A `202 Accepted` response does NOT require durable persistence; hosts that cannot guarantee durability MAY hold the interim Execution Record in non-durable storage that is lost on power cycle (Sections 4.5 and 6.2). However, the server MUST durably persist sufficient idempotency state before performing an irreversible domain effect or invoking an irreversible external operation, whether that state is held by the HTTP host, the Domain, or another durable component (Section 4.5). Failure to durably persist before an irreversible effect or before a terminal `200`/`201` MUST prevent the respective effect or terminal response from being performed or returned.
 
 ---
 
@@ -299,7 +305,7 @@ The server MUST retain owned (durably persisted) Execution Records for a defined
 
 - The retention window SHOULD be published or otherwise made known to clients  
 - After the retention window expires, the server MAY discard the Execution Record  
-- A request replayed with an expired Idempotency-Key MAY be treated as a new command execution  
+- A request replayed with an expired Idempotency-Key MAY begin a new attempt, subject to the Irreversible Effect Rule (Section 4.5)  
 
 ---
 
