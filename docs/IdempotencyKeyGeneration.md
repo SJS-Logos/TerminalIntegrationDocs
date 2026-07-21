@@ -55,6 +55,16 @@ This is a property of the **clustered index**, not of the GUID value itself; a G
 - Implementations SHOULD NOT use a random GUID as the clustered key on SQL Server.
 - Implementations SHOULD prefer either a narrow surrogate clustered key with a unique non-clustered index on the `Idempotency-Key`, or a time-ordered identifier (UUIDv7 / sequential GUID).
 
+### UUIDv7 and fragmentation on SQL Server (clarification)
+
+A common assumption is "if we use UUIDv7 the clustered index will not fragment." This is **only true if SQL Server actually sees the key as sequential**, which is not automatic:
+
+- **`uniqueidentifier` does not sort in byte order.** SQL Server compares `uniqueidentifier` values by a specific byte-group order in which the *last* group is most significant \u2014 the same ordering `NEWSEQUENTIALID()` targets. UUIDv7 (RFC 9562) places its timestamp in the *leftmost* bytes. A UUIDv7 dropped into a `uniqueidentifier` clustered key is therefore **not** monotonic to SQL Server and can still cause random-insert page splits.
+- **To get sequential inserts on SQL Server**, either store the UUIDv7 in a byte-ordered column (`BINARY(16)`), byte-rearrange it into SQL Server's GUID sort order before insert, or keep it in a non-clustered unique index behind a narrow surrogate clustered key (the recommended default above).
+- **"Will not fragment" is too strong even when ordered.** Sequential keys avoid *random-insert* fragmentation, but page splits from row updates, gaps from retention `DELETE`s (Protocol \u00a710.3), and brief out-of-order runs from clock regression on constrained clients (\u00a75.1) still apply.
+
+In short: UUIDv7 removes the *random-insert* fragmentation, and does so automatically on PostgreSQL (\u00a74.2), but on SQL Server it requires a byte-ordered storage/collation choice. Stored as a plain `uniqueidentifier` clustered key, UUIDv7 does **not** guarantee an unfragmented index.
+
 ## 4.2 PostgreSQL
 
 ### Problem
