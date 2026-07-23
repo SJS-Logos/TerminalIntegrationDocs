@@ -17,6 +17,7 @@ Technical specifications for integration between an embedded terminal and backen
 
 | AP | Title | Category | Version | Status |
 |----|-------|----------|---------|--------|
+| [AP-000](docs/AP-000-OTA-Introduction.md) | Introduction to AP Concepts Through OTA | Informative | - | Draft |
 | [AP-001](docs/AP-001.md) | Architectural Principles | Foundational | 0.1 | Draft |
 | [AP-002](docs/AP-002.md) | Service Structure | Structural | 0.1 | Draft |
 | [AP-003](docs/AP-003.md) | Incoming Implementations | Structural | 0.1 | Draft |
@@ -27,9 +28,12 @@ Technical specifications for integration between an embedded terminal and backen
 | [AP-008](docs/AP-008.md) | Testing Strategy | Structural | 0.1 | Draft |
 | [AP-009](docs/AP-009.md) | Read Models and Queries | Structural | 0.1 | Draft |
 
-The AP series builds cumulatively: AP-001 establishes technology-independent invariants, AP-002 turns them into a concrete service structure, and AP-003 through AP-009 refine each area (incoming implementations, domain, capabilities, dependency rules, adapters, testing, and read models/queries). Each AP declares the APs it depends on.
+AP-000 is an informative onboarding bridge from OTA terminology to AP concepts. The normative AP series builds cumulatively: AP-001 establishes technology-independent invariants, AP-002 turns them into a concrete service structure, and AP-003 through AP-009 refine each area (incoming implementations, domain, capabilities, dependency rules, adapters, testing, and read models/queries). Each AP declares the APs it depends on.
 
 ### AP Abstracts
+
+**AP-000 — Introduction to AP Concepts Through OTA (Informative)**  
+A non-normative onboarding bridge for engineers familiar with OTA. It maps legacy OTA structures to AP concepts (Domain, Application, Capabilities, Adapters, and Host boundaries) to ease transition into the AP vocabulary.
 
 **AP-001 — Architectural Principles (Foundational)**  
 Defines the architectural invariants governing all services: a technology-independent structure promoting maintainability, testability, and portability. It specifies logical boundaries (Application, Domain, Shared Kernel, Capabilities) without prescribing technologies, deployment models, or folder names.
