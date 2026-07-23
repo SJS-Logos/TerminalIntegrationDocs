@@ -25,8 +25,9 @@ Technical specifications for integration between an embedded terminal and backen
 | [AP-006](docs/AP-006.md) | Dependency Rules | Structural | 0.1 | Draft |
 | [AP-007](docs/AP-007.md) | Adapter Implementations | Structural | 0.1 | Draft |
 | [AP-008](docs/AP-008.md) | Testing Strategy | Structural | 0.1 | Draft |
+| [AP-009](docs/AP-009.md) | Read Models and Queries | Structural | 0.1 | Draft |
 
-The AP series builds cumulatively: AP-001 establishes technology-independent invariants, AP-002 turns them into a concrete service structure, and AP-003 through AP-008 refine each area (incoming implementations, domain, capabilities, dependency rules, adapters, and testing). Each AP declares the APs it depends on.
+The AP series builds cumulatively: AP-001 establishes technology-independent invariants, AP-002 turns them into a concrete service structure, and AP-003 through AP-009 refine each area (incoming implementations, domain, capabilities, dependency rules, adapters, testing, and read models/queries). Each AP declares the APs it depends on.
 
 ### AP Abstracts
 
@@ -53,6 +54,9 @@ Specifies Adapter Implementations — the concrete, technology-specific realizat
 
 **AP-008 — Testing Strategy (Structural)**  
 Expands the testing structure into a full strategy: the categories of tests, what each verifies, and how test Units respect the dependency rules — applying the invariant that business behaviour is verifiable without deployment.
+
+**AP-009 — Read Models and Queries (Structural)**  
+Specifies the query side of a service: immutable Read Models, read-only Queries, and projection through read-side adapters, while preserving the write-side invariant that business decisions remain in the Domain.
 
 ---
 

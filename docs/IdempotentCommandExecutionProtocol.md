@@ -18,6 +18,12 @@ The protocol provides:
 
 This specification explicitly defines a model that does not require a dedicated Operations endpoint.
 
+## 1.1 Context and Design Rationale
+
+This protocol targets lossy environments where client and server connectivity may fail at any point, including during command execution. The model is intentionally terminal-driven: the client retries with the same `Idempotency-Key` until durable ownership is confirmed by terminal `200`/`201`.
+
+The protocol is transport-level and session-less by design. It does not prescribe business rules, terminal workflows, or implementation topology. Its complexity is intentional: in large fleets over unreliable links, rare partial-failure combinations are expected operating conditions rather than edge cases.
+
 ---
 
 # 2. Normative Language
@@ -37,15 +43,21 @@ For consistency, this specification uses **MUST**/**MUST NOT** for absolute requ
 - Asynchronous execution via `202 Accepted`  
 - Server-side execution state persistence requirements  
 - Retry and recovery semantics  
+- Transaction-scoped idempotency at the command-execution boundary (one logical command attempt across retries)
 
 ## 3.2 Out of Scope
 
 - Domain-specific models  
-- Business transaction semantics  
+- End-to-end business transaction orchestration (for example multi-step payment/configuration workflows)
 - Storage implementation details  
 - Database schema design  
 - Dedicated operation query endpoints  
 
+## 3.3 Boundary to Business-Layer Transactions
+
+In this RFC, "transaction" means the technical execution of one logical command under one `Idempotency-Key`, including retries and crash recovery. It does **not** define the higher-level business transaction lifecycle.
+
+If a business transaction spans multiple commands/messages, that orchestration SHALL be defined by a companion business-layer specification (for example, saga/state-machine rules), including partial-completion handling and compensation behavior.
 ---
 
 # 4. Core Concepts
@@ -322,6 +334,7 @@ If idempotency is enforced in the **domain**, the Incoming Implementation MUST m
 
 If idempotency is enforced in the **transport layer**, the Incoming Implementation MUST NOT allow a duplicate command to reach the domain, and the resulting Execution Record state MUST remain consistent with the semantics defined in Sections 7 and 10. Consistent with AP-001 §6.1 and AP-003, the Incoming Implementation MUST NOT make business decisions; idempotency deduplication is treated here as a technical operation, not a business outcome.
 
+> **Informative note (non-normative):** Where all terminal traffic is funneled through one channel, implementations commonly use a terminal-type orchestration boundary on the host side to keep protocol semantics coherent per terminal type. Whether this boundary is a module or service is an implementation decision and out of scope for this RFC.
 ---
 
 ## 10.5 Storage Expectations per Layer
@@ -421,6 +434,16 @@ All state retrieval is performed through idempotent request replay.
 # 15. Final Principle
 
 > In this model, the idempotent request itself is the handle to both command execution and execution state retrieval. A `202 Accepted` is only a best-effort acknowledgment; a terminal `200`/`201` is the sole confirmation that the server has taken durable ownership of the command's outcome.
+
+## 15.1 Dependency on Business-Layer Specification
+
+This protocol is necessary but not sufficient for complete terminal behavior. Systems using this protocol SHOULD define a companion business-layer contract that specifies:
+
+- multi-step business transaction state progression
+- behavior on partial completion (for example half-configured terminal or interrupted payment flow)
+- compensation/recovery rules across multiple command exchanges
+
+Without that companion contract, transport-level idempotency can guarantee safe command replay but cannot by itself guarantee coherent end-to-end business outcomes.
 
 ---
 
