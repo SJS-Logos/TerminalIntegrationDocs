@@ -429,4 +429,5 @@ FodyWeavers.xsd
 *.msp
 
 # Ignore all top-level directories
-*/
+ota/
+AiO-*/

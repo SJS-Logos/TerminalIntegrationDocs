@@ -5,4 +5,5 @@ curl -s "https://raw.githubusercontent.com/github/gitignore/main/VisualStudio.gi
 cat >> "$OUTPUT" <<'EOF'
 
 # Ignore all top-level directories
-*/
+ota/
+AiO-*/
