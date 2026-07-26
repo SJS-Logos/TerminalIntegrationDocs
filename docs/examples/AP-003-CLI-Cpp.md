@@ -34,19 +34,23 @@ This example demonstrates a command-line interface (CLI) that invokes use cases 
 
 ## 2. Project Structure
 
-**Location:** `mypaymentservice_cli_host/`
+**Location:** `src/payment.service/payment_cli_host/`
 
 ```
-mypaymentservice_core/                    (From AP-002 example)
-mypaymentservice_cli_host/
-+-- commands/
-|   +-- authorize_command.h/.cpp
-|   +-- get_payment_command.h/.cpp
-+-- mappings/
-|   +-- cli_argument_mapping.h/.cpp
-+-- configuration/
-|   +-- cli_configuration.h/.cpp
-+-- cli_parser.h/.cpp
+src/
+└── payment.service/
+    ├── payment_core/                    (From AP-002 example)
+    └── payment_cli_host/
+        +-- commands/
+        |   +-- authorize_command.h/.cpp
+        |   +-- get_payment_command.h/.cpp
+        +-- mappings/
+        |   +-- cli_argument_mapping.h/.cpp
+        +-- configuration/
+        |   +-- cli_configuration.h/.cpp
+        +-- cli_parser.h/.cpp
+
+commerce_worker/
 +-- main.cpp
 ```
 

@@ -12,8 +12,9 @@
 This example demonstrates how to add an HTTP controller that receives requests and invokes use cases from the [C# implementation example](AP-002-Implementation-CSharp.md).
 
 > **📦 Compilable Example Available**  
-> A fully compilable and runnable version of this example is available at:  
-> `MyPaymentService.HttpHost/`  
+> A fully compilable and runnable version of this example is organized under service units and deployment composition:  
+> `src/Payment.Service/Payment.HttpHost/` (incoming infrastructure implementation)  
+> `Commerce.Api/` (deployment composition entry point)
 >
 > See the [README](../../examples/csharp/README.md) for build and run instructions.
 
@@ -112,10 +113,10 @@ This approach:
 
 ---
 
-## 5. Program.cs Configuration
+## 5. Deployment Composition Configuration
 
 ```csharp
-// MyPaymentService.HttpHost/Program.cs
+// Commerce.Api/Program.cs
 using MyPaymentService.Core.Application.UseCases;
 using MyPaymentService.Core.Domain.Services;
 using MyPaymentService.Core.Capabilities.Persistence;
@@ -168,20 +169,23 @@ app.Run();
 ## 6. Project Structure
 
 ```
-MyPaymentService.Core/                    (From AP-002 example)
-├── Domain/
-├── SharedKernel/
-├── Capabilities/
-└── Application/
+src/
+└── Payment.Service/
+    ├── Payment.Core/                     (From AP-002 example)
+    │   ├── Domain/
+    │   ├── SharedKernel/
+    │   ├── Capabilities/
+    │   └── Application/
+    └── Payment.HttpHost/                 (HTTP incoming infrastructure implementation)
+        ├── Controllers/
+        │   └── PaymentsController.cs
+        ├── Mappings/
+        │   ├── AuthorizePaymentHttpMapping.cs
+        │   └── PaymentDetailsHttpMapping.cs
+        └── Configuration/
+            └── ServiceConfiguration.cs
 
-MyPaymentService.HttpHost/                (HTTP incoming)
-├── Controllers/
-│   └── PaymentsController.cs
-├── Mappings/
-│   ├── AuthorizePaymentHttpMapping.cs
-│   └── PaymentDetailsHttpMapping.cs
-├── Configuration/
-│   └── ServiceConfiguration.cs
+Commerce.Api/                             (Deployment composition)
 └── Program.cs
 ```
 

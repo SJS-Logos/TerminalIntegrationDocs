@@ -12,14 +12,15 @@
 This example demonstrates a command-line interface (CLI) host that invokes use cases from the [C# implementation example](AP-002-Implementation-CSharp.md).
 
 > **Compilable Example Available**  
-> A fully compilable version of this example is available at:  
-> [`examples/csharp/MyPaymentService.CliHost/`](../../examples/csharp/MyPaymentService.CliHost/)
+> A fully compilable version of this example is organized as:  
+> `src/Payment.Service/Payment.CliHost/` (incoming infrastructure implementation)  
+> `Commerce.Worker/` (deployment composition entry point)
 >
 > You can build and run it with:
 > ```bash
 > cd examples/csharp
 > dotnet build
-> dotnet run --project MyPaymentService.CliHost -- help
+> dotnet run --project Commerce.Worker -- help
 > ```
 
 **Key Points:**
@@ -33,22 +34,26 @@ This example demonstrates a command-line interface (CLI) host that invokes use c
 
 ## 2. Project Structure
 
-**Location:** `MyPaymentService.CliHost/`
+**Location:** `src/Payment.Service/Payment.CliHost/`
 
 ```
-MyPaymentService.Core/                    (From AP-002 example)
-MyPaymentService.CliHost/
-+-- Commands/
-|   +-- AuthorizeCommand.cs
-|   +-- GetPaymentCommand.cs
-+-- Configuration/
-|   +-- ServiceConfiguration.cs
-+-- CliParser.cs
-+-- XmlDocReader.cs
+src/
+└── Payment.Service/
+    ├── Payment.Core/                    (From AP-002 example)
+    └── Payment.CliHost/
+        +-- Commands/
+        |   +-- AuthorizeCommand.cs
+        |   +-- GetPaymentCommand.cs
+        +-- Configuration/
+        |   +-- ServiceConfiguration.cs
+        +-- CliParser.cs
+        +-- XmlDocReader.cs
+
+Commerce.Worker/
 +-- Program.cs
 ```
 
-The CLI Host is a thin adapter around the same Core (Application + Domain + Shared Kernel) used by the ASP.NET Core HTTP host. Only the transport layer differs.
+The CLI infrastructure implementation unit is a thin adapter around the same Core (Application + Domain + Shared Kernel) used by HTTP and broker units. Deployment composition provides the process entry point.
 
 ---
 

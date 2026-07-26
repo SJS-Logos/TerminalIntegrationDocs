@@ -28,21 +28,25 @@ This example demonstrates how to add an HTTP controller using Qt's HTTP server t
 ## 2. Project Structure
 
 ```
-mypaymentservice_core/                     (From AP-002 example)
-├── domain/
-├── shared_kernel/
-├── capabilities/
-└── application/
-mypaymentservice_http_host/                (HTTP incoming)
-├── controllers/
-│   ├── payments_controller.h
-│   ├── payments_controller.cpp
-├── mappings/
-│   ├── payment_dto.h
-│   ├── payment_dto.cpp
-├── configuration/
-│   ├── http_server.h
-│   └── http_server.cpp
+src/
+└── payment.service/
+    ├── payment_core/                      (From AP-002 example)
+    │   ├── domain/
+    │   ├── shared_kernel/
+    │   ├── capabilities/
+    │   └── application/
+    └── payment_http_host/                 (HTTP incoming infrastructure implementation)
+        ├── controllers/
+        │   ├── payments_controller.h
+        │   ├── payments_controller.cpp
+        ├── mappings/
+        │   ├── payment_dto.h
+        │   ├── payment_dto.cpp
+        └── configuration/
+            ├── http_server.h
+            └── http_server.cpp
+
+commerce_api/
 └── main.cpp
 ```
 

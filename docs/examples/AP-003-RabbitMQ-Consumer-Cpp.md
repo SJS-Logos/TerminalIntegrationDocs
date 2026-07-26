@@ -27,26 +27,30 @@ Like every AP-003 transport endpoint, the consumer contains **no business logic*
 ## 2. Project Structure
 
 ```
-mypaymentservice_core/                     (From AP-002 example)
-??? domain/
-??? shared_kernel/
-??? capabilities/
-??? application/
-mypaymentservice_rabbitmq_host/            (Message broker incoming)
-??? messages/
-?   ??? authorize_payment_command.h             # Incoming message contract
-?   ??? payment_authorized_event.h              # Outgoing message contract
-??? mappings/
-?   ??? message_mapping.h
-?   ??? message_mapping.cpp                      # JSON <-> message <-> contract (translational only)
-??? consumers/
-?   ??? authorize_payment_consumer.h
-?   ??? authorize_payment_consumer.cpp           # Transport endpoint
-??? configuration/
-?   ??? rabbitmq_configuration.h                 # Connection settings (env-driven)
-?   ??? rabbitmq_host.h
-?   ??? rabbitmq_host.cpp                         # Broker wiring (AMQP-CPP + libev)
-??? main.cpp                                      # Composition root
+src/
+└── payment.service/
+    ├── payment_core/                           (From AP-002 example)
+    │   ├── domain/
+    │   ├── shared_kernel/
+    │   ├── capabilities/
+    │   └── application/
+    └── payment_rabbitmq_host/                  (Message broker incoming infrastructure implementation)
+        ├── messages/
+        │   ├── authorize_payment_command.h      # Incoming message contract
+        │   └── payment_authorized_event.h       # Outgoing message contract
+        ├── mappings/
+        │   ├── message_mapping.h
+        │   └── message_mapping.cpp              # JSON <-> message <-> contract (translational only)
+        ├── consumers/
+        │   ├── authorize_payment_consumer.h
+        │   └── authorize_payment_consumer.cpp   # Transport endpoint
+        └── configuration/
+            ├── rabbitmq_configuration.h         # Connection settings (env-driven)
+            ├── rabbitmq_host.h
+            └── rabbitmq_host.cpp                # Broker wiring (AMQP-CPP + libev)
+
+commerce_worker/
+└── main.cpp                                     # Deployment composition root
 ```
 
 ---
@@ -147,7 +151,7 @@ The consumer deliberately rethrows on failure so the broker layer can nack/dead-
 
 ## 5. Composition Root
 
-`main.cpp` wires the Core (via the `ServiceContainer`), constructs the consumer, loads broker configuration, and starts the host. The Core dependencies are identical to the CLI and HTTP hosts.
+`commerce_worker/main.cpp` wires the Core (via the `ServiceContainer`), invokes host configuration, loads broker configuration, and starts the runtime. The Core dependencies are identical to the CLI and HTTP infrastructure implementation units.
 
 ```cpp
 // Create the transport endpoint (consumer).

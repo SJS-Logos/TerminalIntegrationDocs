@@ -11,9 +11,10 @@
 
 This example demonstrates how to add a MassTransit consumer (message handler) that receives messages and invokes use cases from the [C# implementation example](AP-002-Implementation-CSharp.md).
 
-> **?? Compilable Example Available**  
-> A fully compilable version of this example is available at:  
-> `MyPaymentService.MasstransitHost/`  
+> **Compilable Example Available**  
+> A fully compilable version of this example is organized as:  
+> `src/Payment.Service/Payment.MassTransitHost/` (incoming infrastructure implementation)  
+> `Commerce.Worker/` (deployment composition entry point)
 >
 > The consumer implementation is ready to use. See the [README](../../examples/csharp/README.md) for integration instructions.
 
@@ -30,27 +31,32 @@ This example demonstrates how to add a MassTransit consumer (message handler) th
 
 ## 2. Project Structure
 
-**Location:** `MyPaymentService.MasstransitHost/`
+**Location:** `src/Payment.Service/Payment.MassTransitHost/`
 
-The Host Unit is a standalone application that shows how technology is initialized close to the incoming implementation:
+The incoming infrastructure implementation unit is library-style; deployment composes it and owns the process entry point:
 
 ```
-MyPaymentService.MasstransitHost/
-|-- Consumers/
-|   `-- AuthorizePaymentConsumer.cs
-|-- Mappings/
-|   `-- AuthorizePaymentMessageMapping.cs
-|-- Configuration/
-|   `-- ServiceConfiguration.cs
+src/
+└── Payment.Service/
+    ├── Payment.Core/
+    └── Payment.MassTransitHost/
+        |-- Consumers/
+        |   `-- AuthorizePaymentConsumer.cs
+        |-- Mappings/
+        |   `-- AuthorizePaymentMessageMapping.cs
+        `-- Configuration/
+            `-- ServiceConfiguration.cs
+
+Commerce.Worker/
 |-- Program.cs
 `-- appsettings.json
 ```
 
-The Host depends on:
-- `MyPaymentService.Core` - Use cases and contracts
+The infrastructure implementation depends on:
+- `Payment.Core` - Use cases and contracts
 - `MassTransit` + `MassTransit.RabbitMQ` - Messaging technology
 
-**Key Point:** Technology (MassTransit, RabbitMQ) is initialized in `Program.cs`, close to where it's used, NOT in the domain or application layers.
+**Key Point:** Technology wiring is invoked from deployment composition (`Commerce.Worker/Program.cs`) through `ServiceConfiguration`, not from the Domain or Application layers.
 
 ---
 
