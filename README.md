@@ -4,6 +4,7 @@ Technical specifications for integration between an embedded terminal and backen
 
 ---
 
+<!---
 ## RFC Index
 
 | Title | Version | Status |
@@ -12,6 +13,7 @@ Technical specifications for integration between an embedded terminal and backen
 | [Notification Bridge For LongPolling And MQTT](docs/NotificationBridgeForLongPollingAndMQTT.md) | 0.1 | Draft — Feedback / Counter-proposal |
 
 ---
+-->
 
 ## Architecture Pattern (AP) Index
 
@@ -62,6 +64,7 @@ Expands the testing structure into a full strategy: the categories of tests, wha
 **AP-009 — Read Models and Queries (Structural)**  
 Specifies the query side of a service: immutable Read Models, read-only Queries, and projection through read-side adapters, while preserving the write-side invariant that business decisions remain in the Domain.
 
+<!---
 ---
 
 ## Abstracts
@@ -90,3 +93,4 @@ The system is intentionally designed as a **signal-only mechanism**, where notif
 **Note on status:** This document is written as **feedback and a scope counter-proposal** to the AiO RFC *"LongPolling Downstream Transport for the Notification Orchestration Service"*. It argues the downstream transport should carry only a signal that state changed — not the payload itself — which removes the need for at-least-once QoS, ACK tracking, and long retention. It also covers transport applicability under the PCI approved-protocol constraint (LongPolling inside PCI scope; MQTT only outside it). Because the target RFC is owned by another repository, this feedback is hosted here and raised by reference.
 
 → [Read full RFC](docs/NotificationBridgeForLongPollingAndMQTT.md)
+-->
