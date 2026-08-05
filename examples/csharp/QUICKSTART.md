@@ -306,8 +306,8 @@ Make sure you're using HTTP (not HTTPS) and navigating to the root:
 
 - [Full README](README.md) - Complete documentation
 - [Compilable Examples Strategy](../../docs/COMPILABLE-EXAMPLES.md)
-- [AP-002: Service Structure](../../docs/AP-002.md)
-- [AP-003: Incoming Implementations](../../docs/AP-003.md)
+- [AP-002: Service Structure](../../docs/ap/AP-002.md)
+- [AP-003: Incoming Implementations](../../docs/ap/AP-003.md)
 
 ## Questions?
 

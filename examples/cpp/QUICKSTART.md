@@ -179,5 +179,5 @@ If you encounter build errors:
 
 - Read the [full README](README.md) for architecture details
 - Explore the source code in the various library directories
-- Review the [AP-002 Implementation Guide](../../docs/examples/AP-002-Implementation-Cpp.md)
-- Check out the [CLI Application Example](../../docs/examples/AP-003-CLI-Cpp.md)
+- Review the [AP-002 Implementation Guide](../../docs/ap/examples/AP-002-Implementation-Cpp.md)
+- Check out the [CLI Application Example](../../docs/ap/examples/AP-003-CLI-Cpp.md)

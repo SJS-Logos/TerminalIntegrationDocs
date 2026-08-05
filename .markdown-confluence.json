@@ -1,0 +1,7 @@
+{
+  "confluenceBaseUrl": "https://logospaymentsolutions.atlassian.net",
+  "confluenceSpaceKey": "pages",
+  "confluenceParentId": "175734785",
+  "folderToPublish": "docs",
+  "firstHeadingPageTitle": true
+}

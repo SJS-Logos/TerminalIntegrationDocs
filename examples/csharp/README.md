@@ -246,10 +246,10 @@ Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
 ## Documentation References
 
-- **AP-002**: Service Structure -> [docs/AP-002.md](../../docs/AP-002.md)
-- **AP-003**: Incoming Implementations -> [docs/AP-003.md](../../docs/AP-003.md)
-- **AP-005**: Domain Capabilities -> [docs/AP-005.md](../../docs/AP-005.md)
-- **AP-007**: Adapter Implementations -> [docs/AP-007.md](../../docs/AP-007.md)
+- **AP-002**: Service Structure -> [docs/ap/AP-002.md](../../docs/ap/AP-002.md)
+- **AP-003**: Incoming Implementations -> [docs/ap/AP-003.md](../../docs/ap/AP-003.md)
+- **AP-005**: Domain Capabilities -> [docs/ap/AP-005.md](../../docs/ap/AP-005.md)
+- **AP-007**: Adapter Implementations -> [docs/ap/AP-007.md](../../docs/ap/AP-007.md)
 
 ## Benefits of This Approach
 

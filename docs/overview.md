@@ -1,41 +1,30 @@
-# Terminal Integration Docs
+# Terminal Integration Docs Overview
 
 Technical specifications for integration between an embedded terminal and backend.
 
 ---
 
-<!---
-## RFC Index
-
-| Title | Version | Status |
-|-------|---------|--------|
-| [Idempotent Command Execution Protocol](docs/IdempotentCommandExecutionProtocol.md) | 0.1 | Draft |
-| [Notification Bridge For LongPolling And MQTT](docs/NotificationBridgeForLongPollingAndMQTT.md) | 0.1 | Draft — Feedback / Counter-proposal |
-
----
--->
-
 ## SOPC RFC Index
 
 | RFC | Title | Version | Status |
 |-----|-------|---------|--------|
-| [SOPC-001](docs/sopc/SOPC-001.md) | Session-Oriented Process Coordination (SOPC) — Core Model | 0.2 | Draft |
-| [SOPC-002](docs/sopc/SOPC-002.md) | Session-Oriented Process Coordination (SOPC) — Session Script & Coordination | 0.2 | Draft |
+| [SOPC-001](sopc/SOPC-001.md) | Session-Oriented Process Coordination (SOPC) — Core Model | 0.2 | Draft |
+| [SOPC-002](sopc/SOPC-002.md) | Session-Oriented Process Coordination (SOPC) — Session Script & Coordination | 0.2 | Draft |
 
 ## Architecture Pattern (AP) Index
 
 | AP | Title | Category | Version | Status |
 |----|-------|----------|---------|--------|
-| [AP-000](docs/ap/AP-000-OTA-Introduction.md) | Introduction to AP Concepts Through OTA | Informative | - | Draft |
-| [AP-001](docs/ap/AP-001.md) | Architectural Principles | Foundational | 0.1 | Draft |
-| [AP-002](docs/ap/AP-002.md) | Service Structure | Structural | 0.1 | Draft |
-| [AP-003](docs/ap/AP-003.md) | Incoming Implementations | Structural | 0.1 | Draft |
-| [AP-004](docs/ap/AP-004.md) | Domain | Structural | 0.1 | Draft |
-| [AP-005](docs/ap/AP-005.md) | Domain Capabilities | Structural | 0.1 | Draft |
-| [AP-006](docs/ap/AP-006.md) | Dependency Rules | Structural | 0.1 | Draft |
-| [AP-007](docs/ap/AP-007.md) | Adapter Implementations | Structural | 0.1 | Draft |
-| [AP-008](docs/ap/AP-008.md) | Testing Strategy | Structural | 0.1 | Draft |
-| [AP-009](docs/ap/AP-009.md) | Read Models and Queries | Structural | 0.1 | Draft |
+| [AP-000](ap/AP-000-OTA-Introduction.md) | Introduction to AP Concepts Through OTA | Informative | - | Draft |
+| [AP-001](ap/AP-001.md) | Architectural Principles | Foundational | 0.1 | Draft |
+| [AP-002](ap/AP-002.md) | Service Structure | Structural | 0.1 | Draft |
+| [AP-003](ap/AP-003.md) | Incoming Implementations | Structural | 0.1 | Draft |
+| [AP-004](ap/AP-004.md) | Domain | Structural | 0.1 | Draft |
+| [AP-005](ap/AP-005.md) | Domain Capabilities | Structural | 0.1 | Draft |
+| [AP-006](ap/AP-006.md) | Dependency Rules | Structural | 0.1 | Draft |
+| [AP-007](ap/AP-007.md) | Adapter Implementations | Structural | 0.1 | Draft |
+| [AP-008](ap/AP-008.md) | Testing Strategy | Structural | 0.1 | Draft |
+| [AP-009](ap/AP-009.md) | Read Models and Queries | Structural | 0.1 | Draft |
 
 AP-000 is an informative onboarding bridge from OTA terminology to AP concepts. The normative AP series builds cumulatively: AP-001 establishes technology-independent invariants, AP-002 turns them into a concrete service structure, and AP-003 through AP-009 refine each area (incoming implementations, domain, capabilities, dependency rules, adapters, testing, and read models/queries). Each AP declares the APs it depends on.
 
@@ -70,34 +59,3 @@ Expands the testing structure into a full strategy: the categories of tests, wha
 
 **AP-009 — Read Models and Queries (Structural)**  
 Specifies the query side of a service: immutable Read Models, read-only Queries, and projection through read-side adapters, while preserving the write-side invariant that business decisions remain in the Domain.
-
-<!---
----
-
-## Abstracts
-
-### Idempotent Command Execution Protocol
-
-This specification defines an HTTP-based execution protocol for reliable command processing in distributed systems with unreliable clients and intermittent connectivity.
-
-The protocol provides:
-
-- request deduplication  
-- durable server-side execution tracking  
-- asynchronous execution support  
-- recovery from client and server failures  
-
-This specification explicitly defines a model that does not require a dedicated Operations endpoint.
-
-→ [Read full RFC](docs/IdempotentCommandExecutionProtocol.md)
-
-### Minimal Notification Bridge for LongPolling and MQTT
-
-This specification defines a minimal message format and transport bridge for delivering notifications to terminals via LongPolling and MQTT.
-
-The system is intentionally designed as a **signal-only mechanism**, where notifications do not carry domain state, but instead act as triggers for state retrieval via REST APIs.
-
-**Note on status:** This document is written as **feedback and a scope counter-proposal** to the AiO RFC *"LongPolling Downstream Transport for the Notification Orchestration Service"*. It argues the downstream transport should carry only a signal that state changed — not the payload itself — which removes the need for at-least-once QoS, ACK tracking, and long retention. It also covers transport applicability under the PCI approved-protocol constraint (LongPolling inside PCI scope; MQTT only outside it). Because the target RFC is owned by another repository, this feedback is hosted here and raised by reference.
-
-→ [Read full RFC](docs/NotificationBridgeForLongPollingAndMQTT.md)
--->

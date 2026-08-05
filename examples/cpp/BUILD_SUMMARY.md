@@ -3,8 +3,8 @@
 ## Overview
 
 Successfully extracted and created a fully compilable C++ project from the documentation examples in:
-- `docs/examples/AP-002-Implementation-Cpp.md`
-- `docs/examples/AP-003-CLI-Cpp.md`
+- `docs/ap/examples/AP-002-Implementation-Cpp.md`
+- `docs/ap/examples/AP-003-CLI-Cpp.md`
 
 ## Project Structure Created
 

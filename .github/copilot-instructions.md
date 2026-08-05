@@ -5,6 +5,7 @@
 - Prefer the simplest possible project structure to minimize structural complexity. Evaluate AP-003 choices accordingly.
 - Design for multiple Core units, with Host units potentially integrating capabilities from more than one Core, and Deployment units composing/merging multiple services. A Host must be implemented for one specific Core, while a Deployment must be able to deploy many Hosts and Cores. Core and pure Host units should be co-located in the same top-level area (often NuGet-packaged), with Deployment projects kept as local composition/runtime entry points.
 - Use top-level service folders named like `Payment.Service` and `Loyalty.Service` for better readability.
+- Organize Confluence-published docs by topic subfolders (e.g., AP and SOPC) and consider renaming docs/ui to a more specific folder name.
 
 ## DDD/AP Reconciliation
 - Items 1 (static factories), 3 (application-service scope), and 4 (read models) require a meeting.

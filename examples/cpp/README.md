@@ -297,8 +297,8 @@ To add a real database or external fraud detection service:
 
 ## References
 
-- [AP-002 Implementation Guide: C++](../../docs/examples/AP-002-Implementation-Cpp.md)
-- [CLI Application Example: C++](../../docs/examples/AP-003-CLI-Cpp.md)
+- [AP-002 Implementation Guide: C++](../../docs/ap/examples/AP-002-Implementation-Cpp.md)
+- [CLI Application Example: C++](../../docs/ap/examples/AP-003-CLI-Cpp.md)
 - [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/)
 
 ## License
