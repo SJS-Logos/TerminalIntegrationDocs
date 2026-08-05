@@ -58,11 +58,23 @@ jobs:
           rm -rf .confluence-publish
           mkdir -p .confluence-publish
 
-          cp README.md .confluence-publish/README.md
+          python3 - <<'PY'
+          from pathlib import Path
+
+          readme = Path('README.md').read_text(encoding='utf-8')
+          readme = readme.replace('(docs/', '(').replace('(./docs/', '(./')
+          Path('.confluence-publish/readme.md').write_text(readme, encoding='utf-8')
+          PY
 
           while IFS= read -r path; do
             relative="${path#docs/}"
-            target=".confluence-publish/$relative"
+            if [[ "$relative" == */* ]]; then
+              target_rel="${relative#*/}"
+            else
+              target_rel="$relative"
+            fi
+
+            target=".confluence-publish/$target_rel"
             mkdir -p "$(dirname "$target")"
             cp "$path" "$target"
           done < <(find docs -type f | sort)
