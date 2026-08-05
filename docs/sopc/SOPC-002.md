@@ -1,4 +1,4 @@
-# RFC: Session-Oriented Process Coordination (SOPC) — Session Script & Coordination
+# RFC: Session-Oriented Process Coordination (SOPC) â€” Session Script & Coordination
 
 **Version:** 0.2  
 **Status:** Draft  
@@ -14,7 +14,7 @@ This RFC specifies the **coordination layer** of SOPC: the **Session Script** th
 
 SOPC-001 defines what a single Step is and how it behaves in isolation. This document defines how Steps are wired together without a mandatory central orchestrator.
 
-A concrete library implementing them is a **separate project** and is out of scope here, but MUST satisfy the requirements defined in Sections 3–9.
+A concrete library implementing them is a **separate project** and is out of scope here, but MUST satisfy the requirements defined in Sections 3â€“9.
 
 ---
 
@@ -51,7 +51,7 @@ These identifiers are global to the flow so that a Step's outputs can be matched
 
 ## 3.3 Start Declaration
 
-A Session Script MAY declare a **start signal** and its trigger binding, which governs how a Session for this script is initiated (Session Initiation, SOPC-001 §5.8).
+A Session Script MAY declare a **start signal** and its trigger binding, which governs how a Session for this script is initiated (Session Initiation, SOPC-001 Â§5.8).
 
 Where declared, the start declaration MUST identify:
 
@@ -79,14 +79,14 @@ An implementation of the Session Script interface MUST:
 
 The interface SHALL expose at least the following methods, whose semantics are normative (signatures below are illustrative, language-neutral):
 
-- `Identity() -> (ScriptId, ScriptVersion, Name)` — returns the immutable identity of the script.  
-- `Steps() -> [StepId]` — returns the ordered set of Steps.  
-- `Transitions(StepId) -> [Transition]` — returns allowed successor transitions for a Step, including explicit failure and compensation transitions.  
-- `MessageBindings(StepId) -> { Activation, Rollback, Done, Failed }` — returns the global message identifiers bound to a Step's four coordination messages.  
-- `Inputs(StepId) -> [DataElementId]` — returns the global data-element identifiers the Step requires as input.  
-- `Outputs(StepId) -> [DataElementId]` — returns the global data-element identifiers the Step produces.  
-- `Classification(DataElementId) -> Classification` — returns the data classification for a data element.  
-- `Validate() -> ValidationResult` — performs the structural and dataflow validation of Section 6.  
+- `Identity() -> (ScriptId, ScriptVersion, Name)` â€” returns the immutable identity of the script.  
+- `Steps() -> [StepId]` â€” returns the ordered set of Steps.  
+- `Transitions(StepId) -> [Transition]` â€” returns allowed successor transitions for a Step, including explicit failure and compensation transitions.  
+- `MessageBindings(StepId) -> { Activation, Rollback, Done, Failed }` â€” returns the global message identifiers bound to a Step's four coordination messages.  
+- `Inputs(StepId) -> [DataElementId]` â€” returns the global data-element identifiers the Step requires as input.  
+- `Outputs(StepId) -> [DataElementId]` â€” returns the global data-element identifiers the Step produces.  
+- `Classification(DataElementId) -> Classification` â€” returns the data classification for a data element.  
+- `Validate() -> ValidationResult` â€” performs the structural and dataflow validation of Section 6.  
 
 All methods MUST be deterministic and side-effect free.
 
@@ -98,9 +98,9 @@ Deployment of a Session Script is exposed through a separate deployment interfac
 
 An implementation of the deployment interface MUST:
 
-- `Distribute(Script, [Target])` — deliver a Session Script to every participating service at deployment time.  
-- `Verify(Target) -> VerificationResult` — confirm that a target holds a `ScriptVersion` compatible with the Steps it implements, failing deployment on mismatch.  
-- `ActiveVersions() -> [(ScriptId, ScriptVersion)]` — enumerate versions currently deployed, so in-flight Sessions can continue on their originating version.  
+- `Distribute(Script, [Target])` â€” deliver a Session Script to every participating service at deployment time.  
+- `Verify(Target) -> VerificationResult` â€” confirm that a target holds a `ScriptVersion` compatible with the Steps it implements, failing deployment on mismatch.  
+- `ActiveVersions() -> [(ScriptId, ScriptVersion)]` â€” enumerate versions currently deployed, so in-flight Sessions can continue on their originating version.  
 
 The deployment interface MUST NOT mutate a published Session Script; version changes are always expressed as a new `ScriptVersion`.
 
@@ -126,20 +126,20 @@ A transition to the next Step SHALL occur only after the required predecessor St
 
 Failure transitions MUST be explicit in the Session Script.
 
-Compensation transitions (`Rollback`, per SOPC-001 §5.4) SHOULD be defined for every Step that produces externally visible side effects, and MUST define the reverse order in which completed predecessor Steps are compensated.
+Compensation transitions (`Rollback`, per SOPC-001 Â§5.4) SHOULD be defined for every Step that produces externally visible side effects, and MUST define the reverse order in which completed predecessor Steps are compensated.
 
 ## 7.1 Session Coordinator
 
 The runtime role that observes the Session Log, consults the Session Script, and emits the next `Activation` (or `Rollback`) is the **Session Coordinator**.
 
-The Session Coordinator MUST be **flow-agnostic**: it is a generic driver parameterized entirely by the Session Script. It MUST NOT embed flow-specific logic — no per-flow state enumeration and no per-flow branching. All flow knowledge lives in the Session Script (data); the Coordinator only reads the Script and the Session Log to decide what happens next.
+The Session Coordinator MUST be **flow-agnostic**: it is a generic driver parameterized entirely by the Session Script. It MUST NOT embed flow-specific logic â€” no per-flow state enumeration and no per-flow branching. All flow knowledge lives in the Session Script (data); the Coordinator only reads the Script and the Session Log to decide what happens next.
 
 The Session Coordinator MAY be realized in either of two forms, and this choice is an implementation concern:
 
-- **Distributed** — each Participant reacts to predecessor `Done` events and self-activates its Steps, with no central component.  
-- **Centralized** — a single generic driver reads the Session Log and emits the next activation.  
+- **Distributed** â€” each Participant reacts to predecessor `Done` events and self-activates its Steps, with no central component.  
+- **Centralized** â€” a single generic driver reads the Session Log and emits the next activation.  
 
-A centralized Session Coordinator is permitted precisely because it carries no flow-specific logic; it is therefore not a central orchestrator in the sense SOPC deprecates (SOPC-001 §3, SOPC-002 §11). A component that embeds flow-specific transitions is not a Session Coordinator but a reintroduction of the central-coordinator anti-pattern.
+A centralized Session Coordinator is permitted precisely because it carries no flow-specific logic; it is therefore not a central orchestrator in the sense SOPC deprecates (SOPC-001 Â§3, SOPC-002 Â§11). A component that embeds flow-specific transitions is not a Session Coordinator but a reintroduction of the central-coordinator anti-pattern.
 
 ---
 
@@ -151,11 +151,11 @@ The Session Script MUST declare, per Step, the global data-element identifiers t
 
 ## 8.2 Constraints
 
-The mapping MUST reference data elements by global identifier and classification only. It MUST NOT define the internal value structure of a data element; that remains a Step concern per SOPC-001 §7.1. Encoding of the data element on the wire and at rest follows Section 9.
+The mapping MUST reference data elements by global identifier and classification only. It MUST NOT define the internal value structure of a data element; that remains a Step concern per SOPC-001 Â§7.1. Encoding of the data element on the wire and at rest follows Section 9.
 
 Publication of a Session Script MUST perform a static dataflow validation: every required input identifier for a Step MUST be produced by some predecessor Step in the flow. A Session Script that fails this validation MUST NOT be published.
 
-Data classification attached to a global data-element identifier MAY drive redaction and least-privilege rules for derived views (SOPC-001 §10).
+Data classification attached to a global data-element identifier MAY drive redaction and least-privilege rules for derived views (SOPC-001 Â§10).
 
 ---
 
@@ -171,17 +171,17 @@ A `DataElementId` is the single reference used everywhere the element appears: i
 
 A data element MAY be **primitive** (a single value) or **composite** (a set of nested, individually identified data elements).
 
-A reader MUST ignore data elements whose identifier it does not recognize rather than fail, preserving forward compatibility (per SOPC-001 §6.2 schema evolution).
+A reader MUST ignore data elements whose identifier it does not recognize rather than fail, preserving forward compatibility (per SOPC-001 Â§6.2 schema evolution).
 
 The identifier used in any serialized form MUST be the same `DataElementId` declared in the Session Script data-element mapping (Section 8), so that the data is self-describing against the script's bird's-eye view.
 
-Any serialized representation is a wire and at-rest form only; the normative state contract remains the typed value objects of SOPC-001 §7.1. The concrete serialization is an implementation detail. A self-describing, length-delimited encoding keyed by the global identifier — for example, a BER-TLV-style tag/length/value structure in the spirit of EMV — is a reasonable direction, but no specific byte format is mandated by this RFC.
+Any serialized representation is a wire and at-rest form only; the normative state contract remains the typed value objects of SOPC-001 Â§7.1. The concrete serialization is an implementation detail. A self-describing, length-delimited encoding keyed by the global identifier â€” for example, a BER-TLV-style tag/length/value structure in the spirit of EMV â€” is a reasonable direction, but no specific byte format is mandated by this RFC.
 
 ---
 
 # 10. Query and Derivation
 
-The `Query` message (SOPC-001 §5.3, §7.3) returns Step-local data by global data-element identifier. Because the Session Script declares which identifiers each Step produces, a caller can derive a complete Session data view by collecting the declared outputs across Steps.
+The `Query` message (SOPC-001 Â§5.3, Â§7.3) returns Step-local data by global data-element identifier. Because the Session Script declares which identifiers each Step produces, a caller can derive a complete Session data view by collecting the declared outputs across Steps.
 
 Derived business artifacts (for example, receipt or ticket views) MAY be produced from projections over the Session Log, using the Session Script's data-element declarations as the schema of available fields.
 
@@ -189,7 +189,7 @@ Derived business artifacts (for example, receipt or ticket views) MAY be produce
 
 # 11. Relationship to a Central Coordinator (Non-Normative)
 
-This section is non-normative. It records the design intent that the Session Script **replaces a central coordinator** — a single, ever-growing state machine that owns every transition of a flow. Such a monolith is the tight-coupling anti-pattern SOPC-001 §3 sets out to remove.
+This section is non-normative. It records the design intent that the Session Script **replaces a central coordinator** â€” a single, ever-growing state machine that owns every transition of a flow. Such a monolith is the tight-coupling anti-pattern SOPC-001 Â§3 sets out to remove.
 
 ## 11.1 The Mapping
 
@@ -197,12 +197,12 @@ A central coordinator typically concentrates several concerns in one place. Unde
 
 | Central coordinator concern | SOPC replacement |
 |---|---|
-| One global state enumeration | Session Script Steps and transitions (§3, §7) |
-| One dispatch switch owning all sequencing | Coordination inferred from Script + Session Log (§7); no central runtime |
-| An idle/start state that begins new work | Initiator, a small runtime role (SOPC-001 §5.8) |
-| A shared mutable state structure threaded through every branch | Session data, copied by value into declared data-elements (SOPC-001 §7.5, §8) |
-| Sub-state-machines invoked by the switch | Steps / Participants (SOPC-001 §5.3, §5.6) |
-| Long-lived device/health handling | Health Capability (SOPC-001 §5.7) |
+| One global state enumeration | Session Script Steps and transitions (Â§3, Â§7) |
+| One dispatch switch owning all sequencing | Coordination inferred from Script + Session Log (Â§7); no central runtime |
+| An idle/start state that begins new work | Initiator, a small runtime role (SOPC-001 Â§5.8) |
+| A shared mutable state structure threaded through every branch | Session data, copied by value into declared data-elements (SOPC-001 Â§7.5, Â§8) |
+| Sub-state-machines invoked by the switch | Steps / Participants (SOPC-001 Â§5.3, Â§5.6) |
+| Long-lived device/health handling | Health Capability (SOPC-001 Â§5.7) |
 
 ## 11.2 Where Reuse Comes From
 
@@ -211,7 +211,7 @@ Existing sub-state-machines are usually already close to Steps: each has its own
 1. a shared mutable state structure, and  
 2. a central switch that owns all sequencing.  
 
-Removing both — shared state via copy-by-value data-elements, sequencing via the Session Script — allows each sub-state-machine to become an independently deployable, reusable Step. Device-access and health code is reused as-is, reframed as a Health Capability plus device access.
+Removing both â€” shared state via copy-by-value data-elements, sequencing via the Session Script â€” allows each sub-state-machine to become an independently deployable, reusable Step. Device-access and health code is reused as-is, reframed as a Health Capability plus device access.
 
 ## 11.3 Incremental Migration
 
@@ -223,7 +223,7 @@ Deprecating a central coordinator need not be a single cutover. A flow MAY be mi
 
 Genuine spec-level questions:
 
-- Should a Start Declaration (§3.3) be mandatory for self-contained scripts, or remain optional to allow out-of-band initiators?  
+- Should a Start Declaration (Â§3.3) be mandatory for self-contained scripts, or remain optional to allow out-of-band initiators?  
 - Should the Session Script mandate parallel execution of independent (non-dependent) Steps, or leave concurrency to the implementation?  
 
 Deferred to the Session Script "manager" implementation, not this RFC:
@@ -243,4 +243,4 @@ Deferred to the Session Script "manager" implementation, not this RFC:
 
 [3] H. Garcia-Molina and K. Salem, "Sagas," *ACM SIGMOD Record*, vol. 16, no. 3, pp. 249-259, 1987. https://doi.org/10.1145/38713.38742
 
-[4] SOPC-001, "Session-Oriented Process Coordination — Core Model."
+[4] SOPC-001, "Session-Oriented Process Coordination â€” Core Model."

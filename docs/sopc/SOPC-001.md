@@ -1,4 +1,4 @@
-# RFC: Session-Oriented Process Coordination (SOPC) — Core Model
+# RFC: Session-Oriented Process Coordination (SOPC) â€” Core Model
 
 **Version:** 0.2  
 **Status:** Draft  
@@ -13,7 +13,7 @@ This RFC defines the **core model** for coordinating long-running, stateful inte
 
 The model generalizes Saga-style behavior without introducing a mandatory central orchestrator. Coordination is driven by append-only session events and local participant logic.
 
-This document establishes the basics: the Step, its message lifecycle, the Session Log, and the local Session data model. The composition of Steps into an end-to-end flow — the **Session Script** — is specified separately in **SOPC-002**.
+This document establishes the basics: the Step, its message lifecycle, the Session Log, and the local Session data model. The composition of Steps into an end-to-end flow â€” the **Session Script** â€” is specified separately in **SOPC-002**.
 
 ---
 
@@ -31,7 +31,7 @@ SOPC aims to preserve local autonomy while keeping end-to-end flow semantics exp
 
 A Step is defined not by internal implementation but by the **messages it subscribes to** and the **messages it produces**. This keeps Steps autonomous and independently deployable.
 
-This model is intended to replace a central coordinator — a single, ever-growing state machine that owns every transition — with declared coordination; see the non-normative migration guidance in SOPC-002 §11.
+This model is intended to replace a central coordinator â€” a single, ever-growing state machine that owns every transition â€” with declared coordination; see the non-normative migration guidance in SOPC-002 Â§11.
 
 ---
 
@@ -69,10 +69,10 @@ A Session represents one execution instance of a Session Script.
 
 The runtime identity of a Session is minimal. A Session SHALL include only:
 
-- `SessionId` — the identity of this concrete execution instance.  
+- `SessionId` â€” the identity of this concrete execution instance.  
 - A reference to the governing Session Script, sufficient to resolve it: `(ScriptId, ScriptVersion)`.  
 
-All other properties a Session appears to "have" — its steps, their message names, and their input/output parameters — are not stored on the Session. They are **derived** by resolving the Session Script (definition) against the Session Log (history). Values used only to verify or validate the script at deployment time are a deployment concern and are not published to the application runtime.
+All other properties a Session appears to "have" â€” its steps, their message names, and their input/output parameters â€” are not stored on the Session. They are **derived** by resolving the Session Script (definition) against the Session Log (history). Values used only to verify or validate the script at deployment time are a deployment concern and are not published to the application runtime.
 
 A Session MUST be reconstructable from its Session Log together with its Session Script.
 
@@ -85,7 +85,7 @@ Given these, a Step SHALL resolve, from the Session Script:
 - The message names bound to its actions (`Activation`, `Rollback`, `Done`, `Failed`).  
 - Its input data-element identifiers and its output data-element identifiers.  
 
-This resolution is backed by the Session Script interface methods `MessageBindings(StepId)`, `Inputs(StepId)`, and `Outputs(StepId)` defined in SOPC-002 §4.2.
+This resolution is backed by the Session Script interface methods `MessageBindings(StepId)`, `Inputs(StepId)`, and `Outputs(StepId)` defined in SOPC-002 Â§4.2.
 
 A Step MUST NOT depend on any Session-level state beyond this resolution; everything it needs is a function of `(Script, StepId)` for definition and `(SessionId, StepId)` for data. Current position in the flow is derived from the Session Log, not stored on the Session.
 
@@ -103,11 +103,11 @@ A Step implementation MUST be idempotent for every message it consumes.
 
 A Step participates through **five** message types:
 
-1. `Activation` — inbound. Requests the Step to begin execution for a Session.  
-2. `Rollback` — inbound. Requests the Step to compensate a previously completed execution for a Session.  
-3. `Done` — outbound. Signals a terminal successful outcome.  
-4. `Failed` — outbound. Signals a terminal failure outcome, with metadata sufficient for compensation or operator handling.  
-5. `Query` — inbound request / outbound response. Requests the contents of the global data object(s) a Step holds for a given Session and Step identifier (see Section 7.3).  
+1. `Activation` â€” inbound. Requests the Step to begin execution for a Session.  
+2. `Rollback` â€” inbound. Requests the Step to compensate a previously completed execution for a Session.  
+3. `Done` â€” outbound. Signals a terminal successful outcome.  
+4. `Failed` â€” outbound. Signals a terminal failure outcome, with metadata sufficient for compensation or operator handling.  
+5. `Query` â€” inbound request / outbound response. Requests the contents of the global data object(s) a Step holds for a given Session and Step identifier (see Section 7.3).  
 
 A Step SHOULD subscribe to `Activation`, `Rollback`, and `Query` for the Steps it implements.
 
@@ -152,7 +152,7 @@ A Health Entity SHALL have:
 
 A Health Entity is not mutated by direct field assignment. Instead, its state changes are driven by **health state-change messages** addressed to the entity's identifier. Each message declares an observed or requested state transition for that entity; the entity's current state is the result of applying these messages in order. This mirrors the message-driven model used for Steps: producers emit state-change messages, and the entity's state is derived from them rather than shared as mutable memory.
 
-Health state-change messages MAY be **consumed by a health agent (or health manager)** — a long-lived role, separate from the flow, that aggregates the state of many Health Entities, exposes a consolidated view, and MAY react to degraded or failed states (for example, by raising alarms or disabling a component). The health agent is a consumer of health state changes, not a Session Coordinator, and MUST NOT drive Session transitions.
+Health state-change messages MAY be **consumed by a health agent (or health manager)** â€” a long-lived role, separate from the flow, that aggregates the state of many Health Entities, exposes a consolidated view, and MAY react to degraded or failed states (for example, by raising alarms or disabling a component). The health agent is a consumer of health state changes, not a Session Coordinator, and MUST NOT drive Session transitions.
 
 The flow model is unrelated to Health Entities. A Step MAY emit a health state-change message or read a Health Entity's current state, but health observation is orthogonal to coordination and never drives Session transitions. The internal state model of a Health Entity, the vocabulary of its state-change messages, and how the health agent aggregates or polls them are out of scope for this RFC.
 
@@ -173,9 +173,9 @@ The mechanism is a **start signal and a poll**. A Session Script MAY declare a s
 3. If the condition holds, the initiator mints a new `SessionId` and records the first event, activating the first Step.  
 4. If the condition does not hold, no Session is created and no state is retained.  
 
-The initiator is a distinct role from a Step: it runs before any Session exists and therefore cannot rely on `SessionId` or Session data. It is a purely runtime role and is not part of the Session Script interface. Typically the initiator is the environment's **idle loop** — the resting state that continuously watches for a trigger and is the natural home for the "may a new Session begin?" decision. Evaluation of the trigger condition MUST be idempotent with respect to a single start signal, so that a repeated or redelivered signal does not create duplicate Sessions for the same triggering event.
+The initiator is a distinct role from a Step: it runs before any Session exists and therefore cannot rely on `SessionId` or Session data. It is a purely runtime role and is not part of the Session Script interface. Typically the initiator is the environment's **idle loop** â€” the resting state that continuously watches for a trigger and is the natural home for the "may a new Session begin?" decision. Evaluation of the trigger condition MUST be idempotent with respect to a single start signal, so that a repeated or redelivered signal does not create duplicate Sessions for the same triggering event.
 
-Note (non-normative): idempotency is commonly realized by edge detection on the trigger — for example debouncing a hardware input, read-and-clear consumption of a UI button press, or a one-shot flag — so that a level-held or redelivered signal initiates at most one Session.
+Note (non-normative): idempotency is commonly realized by edge detection on the trigger â€” for example debouncing a hardware input, read-and-clear consumption of a UI button press, or a one-shot flag â€” so that a level-held or redelivered signal initiates at most one Session.
 
 The declaration of a Session's start signal and trigger binding is a Session Script concern (see SOPC-002).
 
@@ -215,9 +215,9 @@ Breaking schema changes MUST be introduced with a new schema version and explici
 
 Session state MUST be represented as typed, immutable value objects.
 
-The wire and at-rest encoding of Session data (a form keyed by globally unique data-element identifiers, per SOPC-002 §9) is an implementation detail and MUST NOT be the normative state contract. Adapters MAY translate between such encodings and the typed value objects, but the value objects remain authoritative.
+The wire and at-rest encoding of Session data (a form keyed by globally unique data-element identifiers, per SOPC-002 Â§9) is an implementation detail and MUST NOT be the normative state contract. Adapters MAY translate between such encodings and the typed value objects, but the value objects remain authoritative.
 
-A free-form dictionary MAY be used only as an internal adapter detail and MUST NOT be the normative Session state contract. Such a dictionary is a transitional adapter, for example when migrating a legacy shared structure; the target design is copy-by-value into declared data-elements (§7.5).
+A free-form dictionary MAY be used only as an internal adapter detail and MUST NOT be the normative Session state contract. Such a dictionary is a transitional adapter, for example when migrating a legacy shared structure; the target design is copy-by-value into declared data-elements (Â§7.5).
 
 Each Step MAY contribute additional value objects to Session state, but MUST NOT mutate prior events.
 
@@ -250,7 +250,7 @@ Session data MUST NOT hold a live reference or pointer to an external entity (fo
 
 Instead, a Step that needs data from an external entity SHALL resolve that entity during its execution and **copy the needed fields as values into Session data**, published as the Step's output data-elements. From that point the Session carries a self-contained snapshot: subsequent Steps consume the copied values, not the external source.
 
-This preserves the immutability contract of §7.1 and the replay guarantee of §6: because the snapshot is captured in a `Done` event at the moment of resolution, replaying the Session Log reproduces the same values regardless of later changes to the external entity. A Step that requires a fresher value MUST re-resolve the entity and publish a new data-element, rather than aliasing the original source.
+This preserves the immutability contract of Â§7.1 and the replay guarantee of Â§6: because the snapshot is captured in a `Done` event at the moment of resolution, replaying the Session Log reproduces the same values regardless of later changes to the external entity. A Step that requires a fresher value MUST re-resolve the entity and publish a new data-element, rather than aliasing the original source.
 
 Until resolved, a Participant SHOULD retain local Session data at least until the Session reaches a terminal state and all compensations have completed.
 
@@ -284,7 +284,7 @@ If a `Rollback` cannot complete after retries, the Participant MUST emit a `Fail
 
 # 10. Deployment Profiles
 
-SOPC defines a single abstraction — one Step contract, one Session Script — that is realized across a spectrum of deployments. The abstraction is invariant; the mechanisms that realize it differ by profile. Conformance to SOPC does **not** require a message broker or a distributed infrastructure.
+SOPC defines a single abstraction â€” one Step contract, one Session Script â€” that is realized across a spectrum of deployments. The abstraction is invariant; the mechanisms that realize it differ by profile. Conformance to SOPC does **not** require a message broker or a distributed infrastructure.
 
 Two reference profiles anchor the spectrum:
 
@@ -294,11 +294,11 @@ One process runs the flow, typically one Session at a time (for example, a payme
 
 - The four Step messages (`Activation`, `Rollback`, `Done`, `Failed`) and `Query` MAY be realized as in-process calls or an in-memory queue rather than broker messages.  
 - Delivery is effectively exactly-once; deduplication (Section 9) MAY be a no-op.  
-- The Session Coordinator (SOPC-002 §7.1) is centralized and generic.  
-- `ScriptId`/`ScriptVersion` checks (SOPC-002 §6) are trivially satisfied by the single deployment, but still apply.  
+- The Session Coordinator (SOPC-002 Â§7.1) is centralized and generic.  
+- `ScriptId`/`ScriptVersion` checks (SOPC-002 Â§6) are trivially satisfied by the single deployment, but still apply.  
 - The Session Log (Section 6) remains valuable for crash recovery, for example after a power cycle.  
 
-A single-process realization is a first-class, conformant SOPC deployment. Features intended for distribution are latent — present in the model but trivially satisfied — and MUST NOT be treated as prerequisites.
+A single-process realization is a first-class, conformant SOPC deployment. Features intended for distribution are latent â€” present in the model but trivially satisfied â€” and MUST NOT be treated as prerequisites.
 
 ## 10.2 Distributed Profile
 
@@ -306,11 +306,11 @@ Steps are hosted by independent services, potentially running many concurrent Se
 
 - The Step messages are real messages over a broker; delivery is typically at-least-once, so deduplication by event identifier is mandatory (Section 9).  
 - Compensation (`Rollback`) is real distributed-Saga behaviour.  
-- The Session Coordinator MAY be distributed (Participants self-activate) or a centralized generic driver (SOPC-002 §7.1).  
+- The Session Coordinator MAY be distributed (Participants self-activate) or a centralized generic driver (SOPC-002 Â§7.1).  
 - Concurrent Sessions make `SessionId` partitioning and ordered delivery live concerns.  
 - Copy-by-value (Section 7.5) is a necessity, since a live reference across a service boundary is not possible.  
 
-The additional coordination challenges of the distributed profile — notably ownership of the Session Log across service boundaries — are the subject of ongoing work (Section 13).
+The additional coordination challenges of the distributed profile â€” notably ownership of the Session Log across service boundaries â€” are the subject of ongoing work (Section 13).
 
 ## 10.3 Profile Invariance
 
@@ -318,7 +318,7 @@ The Step contract, the Session Script, the Session Log semantics, and copy-by-va
 
 ## 10.4 Heterogeneous-Language Boundary (Non-Normative)
 
-A deployment commonly spans **several implementation languages** at once — for example C# microservices, C++ embedded firmware, and Java / Kotlin on Android — that must all coordinate within the same flow. Wherever a Step message (`Activation`, `Rollback`, `Done`, `Failed`, `Query`) crosses from one language runtime to another, it is realized as a serialized message (for example JSON over a broker) rather than an in-process call.
+A deployment commonly spans **several implementation languages** at once â€” for example C# microservices, C++ embedded firmware, and Java / Kotlin on Android â€” that must all coordinate within the same flow. Wherever a Step message (`Activation`, `Rollback`, `Done`, `Failed`, `Query`) crosses from one language runtime to another, it is realized as a serialized message (for example JSON over a broker) rather than an in-process call.
 
 Such a boundary is a **transport-adapter concern only** and is deliberately not modeled by SOPC. Each language runtime hosts a translational endpoint that serializes and deserializes Step messages and maps them field-by-field onto its local contract ? it contains no coordination or business logic. Existing repository examples demonstrate this shape on two sides of the boundary already: a C# consumer (`docs/ap/examples/AP-003-MassTransit-Consumer-CSharp.md`) and its C++ equivalent with a purely translational `MessageMapping` (`docs/ap/examples/AP-003-RabbitMQ-Consumer-Cpp.md`); a Java / Kotlin (Android) endpoint is a further adapter of the same shape.
 
@@ -374,4 +374,4 @@ Deferred to implementation, not this RFC:
 
 [3] H. Garcia-Molina and K. Salem, "Sagas," *ACM SIGMOD Record*, vol. 16, no. 3, pp. 249-259, 1987. https://doi.org/10.1145/38713.38742
 
-[4] SOPC-002, "Session-Oriented Process Coordination — Session Script & Coordination."
+[4] SOPC-002, "Session-Oriented Process Coordination â€” Session Script & Coordination."
