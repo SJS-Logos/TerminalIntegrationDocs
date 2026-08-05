@@ -16,10 +16,60 @@ jobs:
   publish-docs:
     name: Publish docs
     runs-on: ubuntu-latest
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate markdown files are UTF-8
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          invalid = []
+          for path in Path('docs').rglob('*.md'):
+              try:
+                  path.read_text(encoding='utf-8')
+              except UnicodeDecodeError as ex:
+                  invalid.append(f"{path}: {ex}")
+
+          if invalid:
+              print('Found markdown files that are not valid UTF-8:')
+              for row in invalid:
+                  print(row)
+              raise SystemExit(1)
+
+          print('All markdown files are valid UTF-8.')
+          PY
+
+      - name: Build deterministic publish folder
+        shell: bash
+        run: |
+          rm -rf .confluence-publish
+          mkdir -p .confluence-publish
+
+          while IFS= read -r path; do
+            target=".confluence-publish/$path"
+            mkdir -p "$(dirname "$target")"
+            cp "$path" "$target"
+          done < <(find docs -type f | sort)
+
+      - name: Prepare publish config
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          config_path = Path('.markdown-confluence.json')
+          config = json.loads(config_path.read_text(encoding='utf-8'))
+          config['folderToPublish'] = '.confluence-publish/docs'
+          config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
 
       - name: Publish markdown to Confluence
         uses: markdown-confluence/publish-action@v5
