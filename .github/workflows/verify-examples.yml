@@ -1,5 +1,4 @@
 name: Verify Compilable Examples
-name: Verify Examples
 
 on:
   push:
