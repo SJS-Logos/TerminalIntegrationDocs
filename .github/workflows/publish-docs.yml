@@ -6,6 +6,7 @@ on:
     paths:
       - 'README.md'
       - 'docs/**'
+      - 'examples/**'
       - '.markdown-confluence.json'
       - '.github/workflows/publish-docs.yml'
   workflow_dispatch:
@@ -23,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate markdown files are UTF-8
         shell: bash
@@ -33,6 +34,7 @@ jobs:
 
           candidates = [Path('README.md')]
           candidates.extend(Path('docs').rglob('*.md'))
+          candidates.extend(Path('examples').rglob('*.md'))
 
           invalid = []
           for path in candidates:
@@ -49,7 +51,7 @@ jobs:
                   print(row)
               raise SystemExit(1)
 
-          print('README.md and docs markdown files are valid UTF-8.')
+          print('README.md, docs, and examples markdown files are valid UTF-8.')
           PY
 
       - name: Build deterministic publish folder
@@ -75,16 +77,19 @@ jobs:
 
           staged_root = publish_root / safe_title
           staged_root.mkdir(parents=True, exist_ok=True)
-          (staged_root / 'readme.md').write_text(readme, encoding='utf-8')
+          (staged_root / 'README.md').write_text(readme, encoding='utf-8')
 
-          docs_root = Path('docs')
-          for source in sorted(docs_root.rglob('*')):
-              if not source.is_file():
+          for source_root in [Path('docs'), Path('examples')]:
+              if not source_root.exists():
                   continue
 
-              target = staged_root / source.relative_to(docs_root)
-              target.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(source, target)
+              for source in sorted(source_root.rglob('*')):
+                  if not source.is_file():
+                      continue
+
+                  target = staged_root / source.relative_to(source_root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
           PY
 
       - name: Prepare publish config
