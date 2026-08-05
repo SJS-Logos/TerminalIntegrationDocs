@@ -1,0 +1,28 @@
+name: Publish Docs to Confluence
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - '.markdown-confluence.json'
+      - '.github/workflows/publish-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-docs:
+    name: Publish docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish markdown to Confluence
+        uses: markdown-confluence/publish-action@v5
+        with:
+          atlassianusername: ${{ vars.atlassian_username }}
+          atlassianapitoken: ${{ secrets.atlassian_api_token }}
