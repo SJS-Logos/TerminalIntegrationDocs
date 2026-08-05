@@ -65,11 +65,29 @@ jobs:
           import shutil
 
           publish_root = Path('.confluence-publish')
+          published_examples_dir = 'implementation-examples'
+
+          def write_markdown(target: Path, content: str) -> None:
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content, encoding='utf-8')
+
+          def copy_file(source: Path, target: Path, replacements: list[tuple[str, str]] | None = None) -> None:
+              target.parent.mkdir(parents=True, exist_ok=True)
+
+              if source.suffix.lower() == '.md':
+                  content = source.read_text(encoding='utf-8')
+                  for old, new in replacements or []:
+                      content = content.replace(old, new)
+                  target.write_text(content, encoding='utf-8')
+                  return
+
+              shutil.copy2(source, target)
+
           readme = Path('README.md').read_text(encoding='utf-8')
           readme = readme.replace('(docs/', '(').replace('(./docs/', '(./')
 
           publish_root.mkdir(parents=True, exist_ok=True)
-          (publish_root / 'README.md').write_text(readme, encoding='utf-8')
+          write_markdown(publish_root / 'README.md', readme)
 
           docs_root = Path('docs')
           if docs_root.exists():
@@ -78,8 +96,10 @@ jobs:
                       continue
 
                   target = publish_root / source.relative_to(docs_root)
-                  target.parent.mkdir(parents=True, exist_ok=True)
-                  shutil.copy2(source, target)
+                  copy_file(source, target, [
+                      ('(../../examples/', f'(../../{published_examples_dir}/'),
+                      ('(../examples/', f'(../{published_examples_dir}/')
+                  ])
 
           examples_root = Path('examples')
           if examples_root.exists():
@@ -87,9 +107,11 @@ jobs:
                   if not source.is_file():
                       continue
 
-                  target = publish_root / 'examples' / source.relative_to(examples_root)
-                  target.parent.mkdir(parents=True, exist_ok=True)
-                  shutil.copy2(source, target)
+                  target = publish_root / published_examples_dir / source.relative_to(examples_root)
+                  copy_file(source, target, [
+                      ('(../../docs/', '(../../'),
+                      ('(../docs/', '(../')
+                  ])
           PY
 
       - name: Prepare publish config
