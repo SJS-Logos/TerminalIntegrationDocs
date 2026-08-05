@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - 'README.md'
       - 'docs/**'
       - '.markdown-confluence.json'
       - '.github/workflows/publish-docs.yml'
@@ -30,8 +31,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          candidates = [Path('README.md')]
+          candidates.extend(Path('docs').rglob('*.md'))
+
           invalid = []
-          for path in Path('docs').rglob('*.md'):
+          for path in candidates:
+              if not path.exists():
+                  continue
               try:
                   path.read_text(encoding='utf-8')
               except UnicodeDecodeError as ex:
@@ -43,7 +49,7 @@ jobs:
                   print(row)
               raise SystemExit(1)
 
-          print('All markdown files are valid UTF-8.')
+          print('README.md and docs markdown files are valid UTF-8.')
           PY
 
       - name: Build deterministic publish folder
@@ -52,8 +58,11 @@ jobs:
           rm -rf .confluence-publish
           mkdir -p .confluence-publish
 
+          cp README.md .confluence-publish/README.md
+
           while IFS= read -r path; do
-            target=".confluence-publish/$path"
+            relative="${path#docs/}"
+            target=".confluence-publish/$relative"
             mkdir -p "$(dirname "$target")"
             cp "$path" "$target"
           done < <(find docs -type f | sort)
@@ -67,7 +76,7 @@ jobs:
 
           config_path = Path('.markdown-confluence.json')
           config = json.loads(config_path.read_text(encoding='utf-8'))
-          config['folderToPublish'] = '.confluence-publish/docs'
+          config['folderToPublish'] = '.confluence-publish'
           config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           PY
 
