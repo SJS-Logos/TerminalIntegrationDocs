@@ -60,24 +60,32 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          import shutil
 
+          publish_root = Path('.confluence-publish')
           readme = Path('README.md').read_text(encoding='utf-8')
           readme = readme.replace('(docs/', '(').replace('(./docs/', '(./')
-          Path('.confluence-publish/readme.md').write_text(readme, encoding='utf-8')
+
+          title = next(
+              (line[2:].strip() for line in readme.splitlines() if line.startswith('# ')),
+              'Documentation'
+          )
+          safe_title = re.sub(r'[<>:"/\\|?*]', '-', title).strip().rstrip('.') or 'Documentation'
+
+          staged_root = publish_root / safe_title
+          staged_root.mkdir(parents=True, exist_ok=True)
+          (staged_root / 'readme.md').write_text(readme, encoding='utf-8')
+
+          docs_root = Path('docs')
+          for source in sorted(docs_root.rglob('*')):
+              if not source.is_file():
+                  continue
+
+              target = staged_root / source.relative_to(docs_root)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, target)
           PY
-
-          while IFS= read -r path; do
-            relative="${path#docs/}"
-            if [[ "$relative" == */* ]]; then
-              target_rel="${relative#*/}"
-            else
-              target_rel="$relative"
-            fi
-
-            target=".confluence-publish/$target_rel"
-            mkdir -p "$(dirname "$target")"
-            cp "$path" "$target"
-          done < <(find docs -type f | sort)
 
       - name: Prepare publish config
         shell: bash
