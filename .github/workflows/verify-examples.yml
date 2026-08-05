@@ -39,11 +39,11 @@ jobs:
         echo "Checking build outputs..."
 
         projects=(
-          "Logos.Payment.Service.Core"
-          "Logos.Payment.Service.Infrastructure.InMemory"
-          "Logos.Payment.Service.CliHost"
-          "Logos.Payment.Service.HttpHost"
-          "Logos.Payment.Service.MasstransitHost"
+          "MyPaymentService.Core"
+          "MyPaymentService.Infrastructure.InMemory"
+          "MyPaymentService.CliHost"
+          "MyPaymentService.HttpHost"
+          "MyPaymentService.MasstransitHost"
         )
 
         for project in "${projects[@]}"; do
@@ -62,11 +62,11 @@ jobs:
         echo "### C# Example Verification Successful" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "All projects compiled successfully:" >> $GITHUB_STEP_SUMMARY
-        echo "- Logos.Payment.Service.Core" >> $GITHUB_STEP_SUMMARY
-        echo "- Logos.Payment.Service.Infrastructure.InMemory" >> $GITHUB_STEP_SUMMARY
-        echo "- Logos.Payment.Service.CliHost" >> $GITHUB_STEP_SUMMARY
-        echo "- Logos.Payment.Service.HttpHost" >> $GITHUB_STEP_SUMMARY
-        echo "- Logos.Payment.Service.MasstransitHost" >> $GITHUB_STEP_SUMMARY
+        echo "- MyPaymentService.Core" >> $GITHUB_STEP_SUMMARY
+        echo "- MyPaymentService.Infrastructure.InMemory" >> $GITHUB_STEP_SUMMARY
+        echo "- MyPaymentService.CliHost" >> $GITHUB_STEP_SUMMARY
+        echo "- MyPaymentService.HttpHost" >> $GITHUB_STEP_SUMMARY
+        echo "- MyPaymentService.MasstransitHost" >> $GITHUB_STEP_SUMMARY
 
   verify-cpp:
     name: Verify C++ Example
