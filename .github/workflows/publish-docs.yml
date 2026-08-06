@@ -1,14 +1,6 @@
 name: Publish Docs to Confluence
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'README.md'
-      - 'docs/**'
-      - 'examples/**'
-      - '.markdown-confluence.json'
-      - '.github/workflows/publish-docs.yml'
   workflow_dispatch:
 
 permissions:
@@ -65,6 +57,8 @@ jobs:
           import shutil
 
           publish_root = Path('.confluence-publish')
+          publish_landing_dir = 'terminal-integration-docs'
+          publish_content_root = publish_root / publish_landing_dir
           published_examples_dir = 'implementation-examples'
 
           def write_markdown(target: Path, content: str) -> None:
@@ -86,8 +80,8 @@ jobs:
           readme = Path('README.md').read_text(encoding='utf-8')
           readme = readme.replace('(docs/', '(').replace('(./docs/', '(./')
 
-          publish_root.mkdir(parents=True, exist_ok=True)
-          write_markdown(publish_root / 'README.md', readme)
+          publish_content_root.mkdir(parents=True, exist_ok=True)
+          write_markdown(publish_content_root / 'README.md', readme)
 
           docs_root = Path('docs')
           if docs_root.exists():
@@ -95,7 +89,7 @@ jobs:
                   if not source.is_file():
                       continue
 
-                  target = publish_root / source.relative_to(docs_root)
+                  target = publish_content_root / source.relative_to(docs_root)
                   copy_file(source, target, [
                       ('(../../examples/', f'(../../{published_examples_dir}/'),
                       ('(../examples/', f'(../{published_examples_dir}/')
@@ -107,7 +101,7 @@ jobs:
                   if not source.is_file():
                       continue
 
-                  target = publish_root / published_examples_dir / source.relative_to(examples_root)
+                  target = publish_content_root / published_examples_dir / source.relative_to(examples_root)
                   copy_file(source, target, [
                       ('(../../docs/', '(../../'),
                       ('(../docs/', '(../')
