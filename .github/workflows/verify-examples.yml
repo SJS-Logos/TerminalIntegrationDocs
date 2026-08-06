@@ -11,6 +11,9 @@ on:
     paths:
       - 'examples/**'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   verify-csharp:
     name: Verify C# Example
